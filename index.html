@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Lads 2026</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛳</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <h1 class="header__title">⛳ Lads 2026</h1>
+      <p class="header__subtitle">Who's playing?</p>
+    </header>
+
+    <p id="status" class="status">Connecting to Supabase…</p>
+
+    <main id="teams" class="teams"></main>
+
+    <section id="confirm" class="confirm" hidden>
+      <p class="confirm__greeting">You're in as <span id="confirm-name" class="confirm__name"></span> 🏌️</p>
+      <p class="confirm__note">Scoring and leaderboards land in a later session.</p>
+      <button id="change-player" type="button" class="change-btn">Not you? Change player</button>
+    </section>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

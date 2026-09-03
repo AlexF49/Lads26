@@ -322,11 +322,11 @@ create policy "public read" on photos for select using (true);
 -- Write access for the tables later sessions need players/scorers to write to directly.
 -- (players/courses/holes/settings/matches/match_players are admin-managed and get their
 -- write policies added when the admin panel session builds that flow.)
-create policy "public write" on scores for insert with check (true);
-create policy "public write" on scores for update using (true);
+create policy "public write insert" on scores for insert with check (true);
+create policy "public write update" on scores for update using (true);
 create policy "public write" on hazards for insert with check (true);
-create policy "public write" on competition_results for insert with check (true);
-create policy "public write" on competition_results for update using (true);
+create policy "public write insert" on competition_results for insert with check (true);
+create policy "public write update" on competition_results for update using (true);
 create policy "public write" on corrections for insert with check (true);
 create policy "public write" on expenses for insert with check (true);
 create policy "public write" on photos for insert with check (true);

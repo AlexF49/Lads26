@@ -157,9 +157,9 @@ function renderTotals() {
         <div class="totals__side" style="color:${s.color}">
           <span class="totals__team">${s.flagEmoji ?? ''} ${s.teamName}</span>
           <div class="totals__score-row">
-            ${i === 0 ? hammers : ''}
+            <div class="totals__hammer-slot">${i === 0 ? hammers : ''}</div>
             <strong>${running.get(s.key)}</strong>
-            ${i === 1 ? hammers : ''}
+            <div class="totals__hammer-slot">${i === 1 ? hammers : ''}</div>
           </div>
           <div class="totals__names">
             ${s.namesWithHandicap.map((n) => `<span>${n.name} (${n.handicap})</span>`).join('')}

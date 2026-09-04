@@ -151,17 +151,21 @@ function renderTotals() {
   totalsEl.innerHTML = `
     <div class="totals__row">
       ${sides
-        .map(
-          (s) => `
+        .map((s, i) => {
+          const hammers = match.format === 'betterball' ? hammerIconsHtml(hammerRemaining.get(s.key)) : '';
+          return `
         <div class="totals__side" style="color:${s.color}">
           <span class="totals__team">${s.flagEmoji ?? ''} ${s.teamName}</span>
-          <strong>${running.get(s.key)}</strong>
-          ${match.format === 'betterball' ? hammerIconsHtml(hammerRemaining.get(s.key)) : ''}
+          <div class="totals__score-row">
+            ${i === 0 ? hammers : ''}
+            <strong>${running.get(s.key)}</strong>
+            ${i === 1 ? hammers : ''}
+          </div>
           <div class="totals__names">
             ${s.namesWithHandicap.map((n) => `<span>${n.name} (${n.handicap})</span>`).join('')}
           </div>
-        </div>`
-        )
+        </div>`;
+        })
         .join('')}
     </div>
     <div class="totals__row totals__row--bonus">

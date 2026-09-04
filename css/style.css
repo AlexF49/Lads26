@@ -983,6 +983,12 @@ body {
   font-size: 1.4rem;
 }
 
+.totals__score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .totals__team {
   font-weight: 700;
   font-size: 0.8rem;
@@ -1000,8 +1006,6 @@ body {
 .totals__hammers {
   display: flex;
   gap: 0.15rem;
-  justify-content: center;
-  margin: 0.15rem 0;
 }
 
 .hammer-icon {

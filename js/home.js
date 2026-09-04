@@ -7,10 +7,7 @@ const playingAsEl = document.getElementById('playing-as');
 const teamScoresEl = document.getElementById('team-scores');
 const tilesEl = document.getElementById('tiles');
 
-const COMING_SOON = [
-  { label: 'Admin', emoji: '🔧' },
-  { label: 'Gallery', emoji: '📷' },
-];
+const COMING_SOON = [{ label: 'Admin', emoji: '🔧' }];
 
 function tile({ href, emoji, label, subtitle, disabled }) {
   const el = document.createElement(href ? 'a' : 'div');
@@ -119,6 +116,7 @@ async function init() {
   tilesEl.appendChild(tile({ href: 'bios.html', emoji: '🧑‍🤝‍🧑', label: 'Player Bios' }));
   tilesEl.appendChild(tile({ href: 'history.html', emoji: '📜', label: 'History' }));
   tilesEl.appendChild(tile({ href: 'expenses.html', emoji: '💷', label: 'Expenses' }));
+  tilesEl.appendChild(tile({ href: 'gallery.html', emoji: '📷', label: 'Gallery' }));
 
   for (const { label, emoji } of COMING_SOON) {
     tilesEl.appendChild(tile({ emoji, label, subtitle: 'Coming soon', disabled: true }));

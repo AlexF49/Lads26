@@ -11,7 +11,7 @@ const FORMATS = [
     title: 'Greensomes',
     day: 1,
     rules: [
-      `Handicap is average of player's handicap (following captain's allocation)`,
+      `Handicap is average of player's handicap`,
       'Two players playing one ball - Alternate shots.',
       'All Players Drive and then select one ball to play',
       'Each player must have at least 6 Drives',

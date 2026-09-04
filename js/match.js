@@ -40,6 +40,9 @@ function buildSides(matchPlayers) {
   if (match.format === 'greensomes') {
     const pair = matchPlayers.filter((mp) => mp.side === 'pair');
     const single = matchPlayers.find((mp) => mp.side === 'single');
+    // Greensomes plays one shared ball, so the pair plays off one combined handicap
+    // (average of the two) — both names show that same number, per the xlsx convention.
+    const pairHcp = pairHandicap(handicapForDay(pair[0].players), handicapForDay(pair[1].players));
     return [
       {
         key: 'pair',
@@ -48,7 +51,8 @@ function buildSides(matchPlayers) {
         teamName: pair[0].players.teams.name,
         flagEmoji: pair[0].players.teams.flag_emoji,
         playerIds: pair.map((p) => p.player_id),
-        handicap: pairHandicap(handicapForDay(pair[0].players), handicapForDay(pair[1].players)),
+        handicap: pairHcp,
+        namesWithHandicap: pair.map((p) => ({ name: p.players.name, handicap: pairHcp })),
       },
       {
         key: 'single',
@@ -58,6 +62,7 @@ function buildSides(matchPlayers) {
         flagEmoji: single.players.teams.flag_emoji,
         playerIds: [single.player_id],
         handicap: handicapForDay(single.players),
+        namesWithHandicap: [{ name: single.players.name, handicap: handicapForDay(single.players) }],
       },
     ];
   }
@@ -77,6 +82,7 @@ function buildSides(matchPlayers) {
           label: p.players.name,
           handicap: handicapForDay(p.players),
         })),
+        namesWithHandicap: pair.map((p) => ({ name: p.players.name, handicap: handicapForDay(p.players) })),
       },
       {
         key: 'single',
@@ -85,6 +91,7 @@ function buildSides(matchPlayers) {
         teamName: single.players.teams.name,
         flagEmoji: single.players.teams.flag_emoji,
         members: [{ playerId: single.player_id, label: single.players.name, handicap: handicapForDay(single.players) }],
+        namesWithHandicap: [{ name: single.players.name, handicap: handicapForDay(single.players) }],
       },
     ];
   }
@@ -98,6 +105,7 @@ function buildSides(matchPlayers) {
     flagEmoji: mp.players.teams.flag_emoji,
     playerIds: [mp.player_id],
     handicap: handicapForDay(mp.players),
+    namesWithHandicap: [{ name: mp.players.name, handicap: handicapForDay(mp.players) }],
   }));
 }
 
@@ -209,7 +217,9 @@ function renderTotals() {
         <div class="totals__side" style="color:${s.color}">
           <span class="totals__team">${s.flagEmoji ?? ''} ${s.teamName}</span>
           <strong>${running.get(s.key)}</strong>
-          <span>${s.label}</span>
+          <div class="totals__names">
+            ${s.namesWithHandicap.map((n) => `<span>${n.name} (${n.handicap})</span>`).join('')}
+          </div>
         </div>`
         )
         .join('')}

@@ -314,6 +314,13 @@ body {
   font-size: 0.8rem;
 }
 
+.totals__names {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.3;
+}
+
 /* ---- Hole-by-hole summary strip ---- */
 .hole-summary {
   background: var(--bg-card);

@@ -36,9 +36,18 @@ body {
 }
 
 .header {
+  position: relative;
   text-align: center;
   color: #ffffff;
   margin-bottom: 1.5rem;
+}
+
+.header__emblem-badge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: auto;
 }
 
 .header__title {
@@ -156,19 +165,6 @@ body {
   text-decoration: none;
   font-size: 0.9rem;
   margin-bottom: 1rem;
-}
-
-.page-header-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.page-emblem {
-  width: 1.8rem;
-  height: 1.8rem;
-  border-radius: 6px;
-  flex-shrink: 0;
 }
 
 .header__emblem {

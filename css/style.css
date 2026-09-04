@@ -1082,6 +1082,14 @@ body {
   color: var(--text-muted);
 }
 
+.hole-summary__num--ring {
+  display: inline-block;
+  outline: 1.5px solid var(--ring-color);
+  outline-offset: 1px;
+  border-radius: 50%;
+  padding: 0 3px;
+}
+
 .hole-summary__value {
   font-weight: 800;
   font-size: 1rem;

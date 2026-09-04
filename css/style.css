@@ -137,3 +137,252 @@ body {
 [hidden] {
   display: none !important;
 }
+
+.continue-btn {
+  display: block;
+  text-decoration: none;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  display: inline-block;
+  color: #ffffff;
+  opacity: 0.8;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+/* ---- Home nav tiles ---- */
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.tile {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  text-decoration: none;
+  color: var(--text);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tile--disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tile__emoji {
+  font-size: 1.8rem;
+}
+
+.tile__label {
+  font-weight: 700;
+}
+
+.tile__subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ---- Matchday page ---- */
+.matches {
+  display: grid;
+  gap: 1rem;
+}
+
+.match-card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.match-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.match-card__header h3 {
+  margin: 0;
+}
+
+.match-card__side {
+  margin: 0.25rem 0;
+}
+
+.edit-btn {
+  background: none;
+  border: 1px solid #d8dedb;
+  border-radius: 8px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.score-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-weight: 700;
+  color: var(--europe);
+  text-decoration: none;
+}
+
+.picker-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.picker-label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.picker-label select {
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 2px solid #e3e7e4;
+  font-size: 1rem;
+}
+
+.picker-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 0.9rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: none;
+  background: var(--europe);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* ---- Match scoring page ---- */
+.totals {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.totals__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.totals__side strong {
+  font-size: 1.4rem;
+}
+
+.hole-card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.hole-card__nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.hole-card__nav button {
+  background: none;
+  border: none;
+  color: var(--europe);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.hole-card__nav button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.hole-card__meta {
+  text-align: center;
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+}
+
+.hole-card__points {
+  text-align: center;
+  font-weight: 700;
+  margin: 0.75rem 0;
+  min-height: 1.2em;
+}
+
+.score-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eef1ef;
+}
+
+.score-row__label {
+  font-weight: 700;
+}
+
+.score-row__net {
+  grid-column: 2;
+  justify-self: end;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.stepper {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stepper__btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: 2px solid #e3e7e4;
+  background: #fafcfb;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stepper__value {
+  min-width: 1.6rem;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+}

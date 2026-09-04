@@ -1,10 +1,10 @@
 -- Lads 2026 — full database schema
 -- Run this whole file once in the Supabase SQL editor to (re)create the project from scratch.
 --
--- Status: Session 1 only USES teams, players, courses, holes and settings.
--- Everything else (matches, scores, hazards, competitions, corrections, expenses, photos)
--- is created now so the schema never needs a breaking change later — later sessions just
--- start writing to tables that already exist.
+-- Status: Session 1 uses teams, players, courses, holes and settings. Session 2 (matchday
+-- scoring) adds matches, match_players and scores. Everything else (hazards, competitions,
+-- corrections, expenses, photos) is created now so the schema never needs a breaking change
+-- later — later sessions just start writing to tables that already exist.
 
 create extension if not exists pgcrypto;
 
@@ -319,9 +319,12 @@ create policy "public read" on corrections for select using (true);
 create policy "public read" on expenses for select using (true);
 create policy "public read" on photos for select using (true);
 
--- Write access for the tables later sessions need players/scorers to write to directly.
--- (players/courses/holes/settings/matches/match_players are admin-managed and get their
--- write policies added when the admin panel session builds that flow.)
+-- Write access for the tables players/scorers write to directly.
+-- (players/courses/holes/settings are admin-managed and get their write policies
+-- added when the admin panel session builds that flow.)
+create policy "public write" on matches for insert with check (true);
+create policy "public write insert" on match_players for insert with check (true);
+create policy "public write delete" on match_players for delete using (true);
 create policy "public write insert" on scores for insert with check (true);
 create policy "public write update" on scores for update using (true);
 create policy "public write" on hazards for insert with check (true);

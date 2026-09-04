@@ -212,6 +212,18 @@ create table hammers (
   unique(match_id, hole, side)
 );
 
+-- Greensomes only: which pair member's drive was used on a hole (only one per hole —
+-- the two radio buttons in the UI are mutually exclusive). Used to show each player's
+-- remaining count toward the "at least 6 drives" rule.
+create table drives (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid references matches(id) on delete cascade,
+  hole integer not null check (hole between 1 and 18),
+  player_id uuid references players(id) on delete cascade,
+  created_at timestamptz default now(),
+  unique(match_id, hole)
+);
+
 -- Hazards (optional — for tracking OOB, water, etc.)
 create table hazards (
   id uuid primary key default gen_random_uuid(),
@@ -321,6 +333,7 @@ alter table matches enable row level security;
 alter table match_players enable row level security;
 alter table scores enable row level security;
 alter table hammers enable row level security;
+alter table drives enable row level security;
 alter table hazards enable row level security;
 alter table competition_types enable row level security;
 alter table competition_results enable row level security;
@@ -337,6 +350,7 @@ create policy "public read" on matches for select using (true);
 create policy "public read" on match_players for select using (true);
 create policy "public read" on scores for select using (true);
 create policy "public read" on hammers for select using (true);
+create policy "public read" on drives for select using (true);
 create policy "public read" on hazards for select using (true);
 create policy "public read" on competition_types for select using (true);
 create policy "public read" on competition_results for select using (true);
@@ -353,6 +367,9 @@ create policy "public write insert" on scores for insert with check (true);
 create policy "public write update" on scores for update using (true);
 create policy "public write insert" on hammers for insert with check (true);
 create policy "public write delete" on hammers for delete using (true);
+create policy "public write insert" on drives for insert with check (true);
+create policy "public write update" on drives for update using (true);
+create policy "public write delete" on drives for delete using (true);
 create policy "public write" on hazards for insert with check (true);
 create policy "public write insert" on competition_results for insert with check (true);
 create policy "public write update" on competition_results for update using (true);
@@ -371,5 +388,6 @@ create policy "public write update" on competition_types for update using (true)
 -- ============================================================================
 alter publication supabase_realtime add table scores;
 alter publication supabase_realtime add table hammers;
+alter publication supabase_realtime add table drives;
 alter publication supabase_realtime add table competition_results;
 alter publication supabase_realtime add table match_players;

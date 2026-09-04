@@ -43,7 +43,23 @@ let scoresByHole = new Map();
 let bonusByHole = new Map();
 // Map<holeNumber, Set<'pair'|'single'>> — Betterball only.
 let hammersByHole = new Map();
+// Map<holeNumber, playerId> — Greensomes only: which pair member drove this hole.
+let drivesByHole = new Map();
 let currentHole = 1;
+
+const MIN_DRIVES = 6;
+
+function driversRemaining(playerId) {
+  const driven = [...drivesByHole.values()].filter((id) => id === playerId).length;
+  return Math.max(0, MIN_DRIVES - driven);
+}
+
+function driveDotsHtml(remaining) {
+  return `<span class="drive-dots">${Array.from(
+    { length: MIN_DRIVES },
+    (_, i) => `<span class="drive-dot${i >= remaining ? ' drive-dot--used' : ''}"></span>`
+  ).join('')}</span>`;
+}
 
 function stepper(id, value, min = 1, max = 15) {
   return `
@@ -276,9 +292,21 @@ function renderHole() {
     const [pairSide, singleSide] = sides;
     const pairVal = holeScores.get(pairSide.playerIds[0]) ?? hole.par;
     const singleVal = holeScores.get(singleSide.playerIds[0]) ?? hole.par;
+    const pairPlayers = pairSide.playerIds.map((id, i) => ({ id, name: pairSide.namesWithHandicap[i].name }));
+    const driverForHole = drivesByHole.get(currentHole);
+    const driversHtml = pairPlayers
+      .map(
+        (p) => `
+      <label class="driver-row">
+        ${driveDotsHtml(driversRemaining(p.id))}
+        <input type="radio" name="driver" value="${p.id}" data-driver ${driverForHole === p.id ? 'checked' : ''} />
+        <span class="driver-row__name">${p.name}</span>
+      </label>`
+      )
+      .join('');
     inputsHtml = `
       <div class="score-row" style="color:${pairSide.color}">
-        <span class="score-row__label">${pairSide.label}</span>
+        <div class="pair-drivers">${driversHtml}</div>
         ${stepper('pair', pairVal)}
         <span class="score-row__net" data-net="pair"></span>
       </div>
@@ -580,6 +608,32 @@ function renderHole() {
       hammersByHole.set(currentHole, new Set(calledHammers));
     }
 
+    // Driver (Greensomes only): which pair member's drive was used this hole.
+    if (match.format === 'greensomes') {
+      const driverId = holeCardEl.querySelector('[data-driver]:checked')?.value;
+      if (driverId) {
+        const { error: driveError } = await supabase
+          .from('drives')
+          .upsert({ match_id: matchId, hole: currentHole, player_id: driverId }, { onConflict: 'match_id,hole' });
+        if (driveError) {
+          setStatus(`Could not save driver: ${driveError.message}`, true);
+          return;
+        }
+        drivesByHole.set(currentHole, driverId);
+      } else {
+        const { error: driveDeleteError } = await supabase
+          .from('drives')
+          .delete()
+          .eq('match_id', matchId)
+          .eq('hole', currentHole);
+        if (driveDeleteError) {
+          setStatus(`Could not save driver: ${driveDeleteError.message}`, true);
+          return;
+        }
+        drivesByHole.delete(currentHole);
+      }
+    }
+
     setStatus('Saved ✓');
     renderTotals();
 
@@ -629,6 +683,7 @@ async function init() {
     { data: types, error: typesError },
     { data: existingBonus, error: bonusError },
     { data: existingHammers, error: hammersError },
+    { data: existingDrives, error: drivesError },
   ] = await Promise.all([
     supabase
       .from('match_players')
@@ -639,10 +694,14 @@ async function init() {
     supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated').order('sort_order'),
     supabase.from('competition_results').select('hole, competition_type_id, winner_id').eq('day', match.day),
     supabase.from('hammers').select('hole, side').eq('match_id', matchId),
+    supabase.from('drives').select('hole, player_id').eq('match_id', matchId),
   ]);
 
-  if (mpError || courseError || scoresError || typesError || bonusError || hammersError) {
-    setStatus(`Could not load match data: ${(mpError || courseError || scoresError || typesError || bonusError || hammersError).message}`, true);
+  if (mpError || courseError || scoresError || typesError || bonusError || hammersError || drivesError) {
+    setStatus(
+      `Could not load match data: ${(mpError || courseError || scoresError || typesError || bonusError || hammersError || drivesError).message}`,
+      true
+    );
     return;
   }
   competitionTypes = types;
@@ -690,6 +749,11 @@ async function init() {
   for (const row of existingHammers ?? []) {
     if (!hammersByHole.has(row.hole)) hammersByHole.set(row.hole, new Set());
     hammersByHole.get(row.hole).add(row.side);
+  }
+
+  drivesByHole = new Map();
+  for (const row of existingDrives ?? []) {
+    drivesByHole.set(row.hole, row.player_id);
   }
 
   // Resume at the first hole without a full set of saved scores. Every format writes

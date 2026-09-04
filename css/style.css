@@ -1227,6 +1227,40 @@ body {
   font-weight: 700;
 }
 
+.pair-drivers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.driver-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+}
+
+.driver-row input[type='radio'] {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.drive-dots {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.drive-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #dc2626;
+}
+
+.drive-dot--used {
+  background: #e3e7e4;
+}
+
 .score-row__net {
   grid-column: 2;
   justify-self: end;

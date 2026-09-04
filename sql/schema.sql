@@ -273,7 +273,7 @@ insert into competition_types (name, points, points_day1, points_day2, points_da
   ('Par3 Pin', 2, 2, 2, 2, null, 2, true, false),
   ('Long Putt', 3, 3, 3, 3, null, 3, true, false),
   ('Chip In', 3, 3, 3, 3, null, 4, true, false),
-  ('Green Drive', 3, 3, 3, 3, null, 5, true, false),
+  ('Par4 Green', 3, 3, 3, 3, null, 5, true, false),
   ('Clutch', 1, 1, 1, 1, null, 6, false, false),
   ('Ballbag', 3, 3, 3, 3, 3, 7, true, false);
 

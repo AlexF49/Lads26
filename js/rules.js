@@ -82,8 +82,8 @@ function bonusLines(ctByName, day) {
   if (longPutt != null) lines.push(`Long Putt (20ft): ${pt(longPutt)}`);
   const chipIn = pts('Chip In');
   if (chipIn != null) lines.push(`Chip In: ${pt(chipIn)}`);
-  const driveGreen = pts('Green Drive');
-  if (driveGreen != null) lines.push(`Green Drive: ${pt(driveGreen)}`);
+  const driveGreen = pts('Par4 Green');
+  if (driveGreen != null) lines.push(`Par4 Green: ${pt(driveGreen)}`);
   const clutch = pts('Clutch');
   if (clutch != null) lines.push(`Clutch: ${pt(clutch)} (individual leaderboard only)`);
   if (day === 3) {

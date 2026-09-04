@@ -462,7 +462,7 @@ function renderHole() {
   }
 
   const bonusSelections = bonusByHole.get(currentHole) ?? new Map();
-  const manualTypes = competitionTypes.filter((ct) => !ct.is_automated);
+  const manualTypes = competitionTypes.filter((ct) => !ct.is_automated && (ct.applies_day == null || ct.applies_day === match.day));
   const bonusGridHtml = `
     <div class="bonus-grid">
       <div class="bonus-grid__row bonus-grid__row--auto" id="net-eagle-row"></div>
@@ -791,7 +791,7 @@ async function init() {
       .eq('match_id', matchId),
     supabase.from('courses').select('id').eq('day', match.day).single(),
     supabase.from('scores').select('player_id, hole, gross_strokes').eq('match_id', matchId),
-    supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated').order('sort_order'),
+    supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, applies_day, counts_toward_bonus, is_automated').order('sort_order'),
     supabase.from('competition_results').select('hole, competition_type_id, winner_id').eq('day', match.day),
     supabase.from('hammers').select('hole, side').eq('match_id', matchId),
     supabase.from('drives').select('hole, player_id').eq('match_id', matchId),

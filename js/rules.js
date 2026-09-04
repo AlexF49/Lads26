@@ -89,6 +89,10 @@ function bonusLines(ctByName, day) {
   if (driveGreen != null) lines.push(`Drive the Green: ${pt(driveGreen)}`);
   const clutch = pts('Clutch Shot');
   if (clutch != null) lines.push(`Clutch Shot: ${pt(clutch)} (individual leaderboard only)`);
+  if (day === 3) {
+    const ballbag = pts('Ballbag');
+    if (ballbag != null) lines.push(`Ballbag: ${pt(ballbag)}`);
+  }
   return lines;
 }
 

@@ -260,18 +260,21 @@ create table competition_types (
   points_day1 integer,                          -- per-day points, editable from the admin page; falls back to `points` if null
   points_day2 integer,
   points_day3 integer,
+  applies_day integer,                          -- null = every day (all the original types); a day number restricts the
+                                                 -- bonus grid to only offer it that day, e.g. Ballbag is Day 3 (Singles) only
   sort_order integer not null,
   counts_toward_bonus boolean not null default true,  -- Clutch Shot is tracked but scored separately (its own competition)
   is_automated boolean not null default false  -- Net Eagle is derived from scores, not hand-picked in the bonus grid
 );
 
-insert into competition_types (name, points, points_day1, points_day2, points_day3, sort_order, counts_toward_bonus, is_automated) values
-  ('Net Eagle', 2, 2, 2, 2, 1, true, true),
-  ('Nearest the Pin', 2, 2, 2, 2, 2, true, false),
-  ('Long Putt', 3, 3, 3, 3, 3, true, false),
-  ('Chip In', 3, 3, 3, 3, 4, true, false),
-  ('Drive the Green', 3, 3, 3, 3, 5, true, false),
-  ('Clutch Shot', 1, 1, 1, 1, 6, false, false);
+insert into competition_types (name, points, points_day1, points_day2, points_day3, applies_day, sort_order, counts_toward_bonus, is_automated) values
+  ('Net Eagle', 2, 2, 2, 2, null, 1, true, true),
+  ('Nearest the Pin', 2, 2, 2, 2, null, 2, true, false),
+  ('Long Putt', 3, 3, 3, 3, null, 3, true, false),
+  ('Chip In', 3, 3, 3, 3, null, 4, true, false),
+  ('Drive the Green', 3, 3, 3, 3, null, 5, true, false),
+  ('Clutch Shot', 1, 1, 1, 1, null, 6, false, false),
+  ('Ballbag', 3, 3, 3, 3, 3, 7, true, false);
 
 create table competition_results (
   id uuid primary key default gen_random_uuid(),

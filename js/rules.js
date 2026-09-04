@@ -1,3 +1,6 @@
+import { supabase } from './supabaseClient.js';
+import { pointsForDay } from './matchLogic.js';
+
 const STORAGE_KEY = 'lads26_player_id';
 
 const contentEl = document.getElementById('rules-content');
@@ -6,6 +9,7 @@ const contentEl = document.getElementById('rules-content');
 const FORMATS = [
   {
     title: 'Greensomes',
+    day: 1,
     rules: [
       `Handicap is average of player's handicap (following captain's allocation)`,
       'Two players playing one ball - Alternate shots.',
@@ -13,45 +17,44 @@ const FORMATS = [
       'Each player must have at least 6 Drives',
       `2 Gruesome per team; Force other team to take the worse drive. Counts towards the player's 6 drives.`,
     ],
-    scoring: ['Two Points per hole for a win; One for a draw', 'Double Points on last hole', '76 Points in the day across both matches.'],
-    bonus: [
-      `Closest to the Pin on all Par 3's across both groups`,
-      'Net Eagle: 2 points (Adjusted HC)',
-      'Long Putt (20ft): 2 points',
-      'Drive the Green: 5 points',
+    scoring: [
+      'Two Points per hole for a win; One for a draw',
+      'Double Points on last hole',
+      "76 points available per team across the day's 2 matches (114 points total across all 3 matches).",
     ],
   },
   {
     title: 'Betterball',
+    day: 2,
     rules: [
       'Each player plays their own ball',
       `Play to 100% of Handicap (following captain's allocation)`,
-      'Best Net Score wins across the 4 players wins the hole.',
+      'Best Net Score wins across the 3 players wins the hole.',
     ],
-    scoring: ['Two Points per hole for a win; One for a draw', 'Double Points on last hole', '76 Points in the day across both matches.'],
-    bonus: [
+    scoring: [
+      'Two Points per hole for a win; One for a draw',
+      'Double Points on last hole',
+      "76 points available per team across the day's 2 matches (114 points total across all 3 matches).",
+    ],
+    extraBonus: [
       'Hammer Clause - One team member must win the hole and the other at least tie. Double points if successful.',
+      'The single player must beat both scores',
       '2 Hammers per round. Retain if successful',
-      `Closest to the Pin on all Par 3's across both groups`,
-      'Net Eagle: 2 points (Original HC)',
-      'Long Putt (20ft): 2 points',
-      'Drive the Green: 5 points',
     ],
   },
   {
     title: 'Singles',
+    day: 3,
     rules: [
-      '2 Independent matches per 4-ball.',
+      'Singles Matchplay against your own seeded opponents.',
       'Each player plays their own ball',
-      `Play to 100% of Handicap (following captain's allocation)`,
+      'Play to 100% of Handicap',
       'Best Net Score wins against their opposing player.',
     ],
-    scoring: ['Two Points per hole for a win; One for a draw', 'Double Points on last hole', '152 Points in the day across 4 matches.'],
-    bonus: [
-      `Closest to the Pin on all Par 3's across both groups`,
-      'Net Eagle: 2 points (Original HC)',
-      'Long Putt (20ft): 2 points',
-      'Drive the Green: 5 points',
+    scoring: [
+      '3 points on the hole with 2 for a win and 1 for a second place. Shared holes will split the points at that level.',
+      'Double Points on last hole',
+      "114 points available per team across the day's 3 matches (171 points total across all 3 matches).",
     ],
   },
 ];
@@ -60,7 +63,34 @@ function list(items) {
   return `<ul class="rules-list">${items.map((i) => `<li>${i}</li>`).join('')}</ul>`;
 }
 
-function render() {
+// Bonus point values come live from the admin page (competition_types.points_dayN) so the
+// Rules page never drifts out of sync with what's actually configured.
+function bonusLines(ctByName, day) {
+  const pts = (name) => {
+    const ct = ctByName.get(name);
+    return ct ? pointsForDay(ct, day) : null;
+  };
+  const pt = (n) => `${n} point${n === 1 ? '' : 's'}`;
+
+  const lines = [];
+  const nearest = pts('Nearest the Pin');
+  if (nearest != null) lines.push(`Closest to the Pin on all Par 3's across both groups: ${pt(nearest)}`);
+  const eagle = pts('Net Eagle');
+  if (eagle != null) lines.push(`Net Eagle: ${pt(eagle)} (${day === 1 ? 'Adjusted' : 'Original'} HC)`);
+  const longPutt = pts('Long Putt');
+  if (longPutt != null) lines.push(`Long Putt (20ft): ${pt(longPutt)}`);
+  const chipIn = pts('Chip In');
+  if (chipIn != null) lines.push(`Chip In: ${pt(chipIn)}`);
+  const driveGreen = pts('Drive the Green');
+  if (driveGreen != null) lines.push(`Drive the Green: ${pt(driveGreen)}`);
+  const clutch = pts('Clutch Shot');
+  if (clutch != null) lines.push(`Clutch Shot: ${pt(clutch)} (individual leaderboard only)`);
+  return lines;
+}
+
+function render(competitionTypes) {
+  const ctByName = new Map(competitionTypes.map((ct) => [ct.name, ct]));
+
   const formatsHtml = FORMATS.map(
     (f) => `
     <div class="rules-card">
@@ -69,19 +99,30 @@ function render() {
       <h3 class="rules-card__subtitle">Scoring</h3>
       ${list(f.scoring)}
       <h3 class="rules-card__subtitle">Bonus Points</h3>
-      ${list(f.bonus)}
+      ${list([...(f.extraBonus ?? []), ...bonusLines(ctByName, f.day)])}
     </div>`
   ).join('');
 
   contentEl.innerHTML = formatsHtml;
 }
 
-function init() {
+async function init() {
   if (!localStorage.getItem(STORAGE_KEY)) {
     window.location.href = 'index.html';
     return;
   }
-  render();
+
+  const { data: competitionTypes, error } = await supabase
+    .from('competition_types')
+    .select('id, name, points, points_day1, points_day2, points_day3, sort_order')
+    .order('sort_order');
+
+  if (error) {
+    contentEl.innerHTML = `<p class="status status--error">Could not load bonus points: ${error.message}</p>`;
+    return;
+  }
+
+  render(competitionTypes ?? []);
 }
 
 init();

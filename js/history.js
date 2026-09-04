@@ -22,11 +22,11 @@ const PARAGRAPHS = [
   `Once again, Paul was masterful in his organisation. Kibbey graceful in defeat showing that the trip isn't really about golf and the best player award went to a dry cleaners in West Sussex.`,
 ];
 
-// Photos inserted in numbered order, spaced through the scroll.
+// Photo 1 opens the page; the rest are inserted above the paragraph they mark.
+const TOP_PHOTO = 'img/history/photo1.jpg';
 const PHOTOS = [
-  { src: 'img/history/photo1.jpg', afterParagraph: 3 },
-  { src: 'img/history/photo2.jpg', afterParagraph: 8 },
-  { src: 'img/history/photo3.jpg', afterParagraph: 13 },
+  { src: 'img/history/photo2.jpg', afterParagraph: 3 }, // above "A few years via Hanbury Manor"
+  { src: 'img/history/photo3.jpg', afterParagraph: 7 }, // above "2025 bring the same people back"
 ];
 
 // Sourced from History/Results.png.
@@ -44,7 +44,7 @@ const RESULTS = [
 ];
 
 function renderHistory() {
-  const parts = [];
+  const parts = [`<img class="history-text__photo" src="${TOP_PHOTO}" alt="Lads 2026 history photo" />`];
   PARAGRAPHS.forEach((text, i) => {
     parts.push(`<p class="history-text__para">${text}</p>`);
     const photo = PHOTOS.find((p) => p.afterParagraph === i + 1);

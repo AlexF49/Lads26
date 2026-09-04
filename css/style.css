@@ -702,6 +702,25 @@ body {
   margin-bottom: 1rem;
 }
 
+.gallery-year-tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+.gallery-year-tabs .lb-tab {
+  flex: none;
+  padding: 0.6rem 1.1rem;
+}
+
+.gallery-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #ffffff;
+  opacity: 0.8;
+  padding: 2rem 0;
+}
+
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

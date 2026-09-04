@@ -285,6 +285,7 @@ create table photos (
   id uuid primary key default gen_random_uuid(),
   storage_path text not null,       -- path in Supabase Storage
   caption text,
+  year integer not null default 2026,  -- which trip this photo is from, for the gallery's year selector
   uploaded_by uuid references players(id),
   day integer,
   hole integer,

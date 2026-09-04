@@ -14,13 +14,14 @@ create extension if not exists pgcrypto;
 create table teams (
   id text primary key,              -- 'europe' | 'usa' | 'australia'
   name text not null,
-  color_hex text not null           -- used for team-colour theming throughout the app
+  color_hex text not null,          -- used for team-colour theming throughout the app
+  flag_emoji text                   -- e.g. 🇪🇺 — Unicode flag, no image asset needed
 );
 
-insert into teams (id, name, color_hex) values
-  ('europe',    'Europe',    '#1D4ED8'),  -- blue
-  ('usa',       'USA',       '#DC2626'),  -- red
-  ('australia', 'Australia', '#D4AF37');  -- gold
+insert into teams (id, name, color_hex, flag_emoji) values
+  ('europe',    'Europe',    '#1D4ED8', '🇪🇺'),  -- blue
+  ('usa',       'USA',       '#DC2626', '🇺🇸'),  -- red
+  ('australia', 'Australia', '#D4AF37', '🇦🇺');  -- gold
 
 -- ============================================================================
 -- 2. Players
@@ -216,15 +217,17 @@ create table hazards (
 create table competition_types (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
-  points integer not null       -- from Lads 2026.xlsx, Leaderboard tab, Point Allocation row
+  points integer not null,                     -- from Lads 2026.xlsx, Leaderboard tab, Point Allocation row
+  sort_order integer not null,
+  counts_toward_bonus boolean not null default true  -- Clutch Shot is tracked but scored separately (its own competition)
 );
 
-insert into competition_types (name, points) values
-  ('Nearest the Pin', 2),
-  ('Drive the Green', 3),
-  ('Long Putt', 3),
-  ('Chip In', 3),
-  ('Clutch Shot', 1);
+insert into competition_types (name, points, sort_order, counts_toward_bonus) values
+  ('Nearest the Pin', 2, 1, true),
+  ('Long Putt', 3, 2, true),
+  ('Chip In', 3, 3, true),
+  ('Drive the Green', 3, 4, true),
+  ('Clutch Shot', 1, 5, false);
 
 create table competition_results (
   id uuid primary key default gen_random_uuid(),

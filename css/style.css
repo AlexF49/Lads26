@@ -309,6 +309,63 @@ body {
   font-size: 1.4rem;
 }
 
+.totals__team {
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+/* ---- Hole-by-hole summary strip ---- */
+.hole-summary {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.hole-summary__row {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 0.2rem;
+}
+
+.hole-summary__cell {
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 0.25rem 0.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.hole-summary__cell--active {
+  border-color: var(--europe);
+}
+
+.hole-summary__num {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.hole-summary__value {
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.hole-summary__value--tie {
+  color: #10241a;
+}
+
+.hole-summary__value--empty {
+  color: #c9d1cc;
+  font-weight: 400;
+}
+
 .totals__row--bonus .totals__side strong {
   font-size: 1.1rem;
 }

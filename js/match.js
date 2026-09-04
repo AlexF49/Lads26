@@ -11,6 +11,7 @@ const matchTitleEl = document.getElementById('match-title');
 const matchPlayersEl = document.getElementById('match-players');
 const statusEl = document.getElementById('status');
 const totalsEl = document.getElementById('totals');
+const holeSummaryEl = document.getElementById('hole-summary');
 const holeCardEl = document.getElementById('hole-card');
 
 function setStatus(message, isError = false) {
@@ -44,6 +45,8 @@ function buildSides(matchPlayers) {
         key: 'pair',
         label: pair.map((p) => p.players.name).join(' & '),
         color: pair[0].players.teams.color_hex,
+        teamName: pair[0].players.teams.name,
+        flagEmoji: pair[0].players.teams.flag_emoji,
         playerIds: pair.map((p) => p.player_id),
         handicap: pairHandicap(handicapForDay(pair[0].players), handicapForDay(pair[1].players)),
       },
@@ -51,6 +54,8 @@ function buildSides(matchPlayers) {
         key: 'single',
         label: single.players.name,
         color: single.players.teams.color_hex,
+        teamName: single.players.teams.name,
+        flagEmoji: single.players.teams.flag_emoji,
         playerIds: [single.player_id],
         handicap: handicapForDay(single.players),
       },
@@ -65,6 +70,8 @@ function buildSides(matchPlayers) {
         key: 'pair',
         label: pair.map((p) => p.players.name).join(' & '),
         color: pair[0].players.teams.color_hex,
+        teamName: pair[0].players.teams.name,
+        flagEmoji: pair[0].players.teams.flag_emoji,
         members: pair.map((p) => ({
           playerId: p.player_id,
           label: p.players.name,
@@ -75,6 +82,8 @@ function buildSides(matchPlayers) {
         key: 'single',
         label: single.players.name,
         color: single.players.teams.color_hex,
+        teamName: single.players.teams.name,
+        flagEmoji: single.players.teams.flag_emoji,
         members: [{ playerId: single.player_id, label: single.players.name, handicap: handicapForDay(single.players) }],
       },
     ];
@@ -85,6 +94,8 @@ function buildSides(matchPlayers) {
     key: mp.player_id,
     label: mp.players.name,
     color: mp.players.teams.color_hex,
+    teamName: mp.players.teams.name,
+    flagEmoji: mp.players.teams.flag_emoji,
     playerIds: [mp.player_id],
     handicap: handicapForDay(mp.players),
   }));
@@ -162,12 +173,16 @@ function computeHolePoints(hole, holeScores) {
 }
 
 function bonusPointsByPlayer() {
-  const pointsByType = new Map(competitionTypes.map((ct) => [ct.id, ct.points]));
+  // Clutch Shot is logged here but scored as its own separate competition, not
+  // accrued into these running bonus totals.
+  const pointsByType = new Map(
+    competitionTypes.filter((ct) => ct.counts_toward_bonus).map((ct) => [ct.id, ct.points])
+  );
   const totals = new Map(matchPlayersFlat.map((p) => [p.playerId, 0]));
   for (const winners of bonusByHole.values()) {
     for (const [typeId, winnerId] of winners) {
-      if (!totals.has(winnerId)) continue;
-      totals.set(winnerId, totals.get(winnerId) + (pointsByType.get(typeId) ?? 0));
+      if (!totals.has(winnerId) || !pointsByType.has(typeId)) continue;
+      totals.set(winnerId, totals.get(winnerId) + pointsByType.get(typeId));
     }
   }
   return totals;
@@ -189,7 +204,14 @@ function renderTotals() {
   totalsEl.innerHTML = `
     <div class="totals__row">
       ${sides
-        .map((s) => `<div class="totals__side" style="color:${s.color}"><strong>${running.get(s.key)}</strong><span>${s.label}</span></div>`)
+        .map(
+          (s) => `
+        <div class="totals__side" style="color:${s.color}">
+          <span class="totals__team">${s.flagEmoji ?? ''} ${s.teamName}</span>
+          <strong>${running.get(s.key)}</strong>
+          <span>${s.label}</span>
+        </div>`
+        )
         .join('')}
     </div>
     <div class="totals__row totals__row--bonus">
@@ -201,6 +223,48 @@ function renderTotals() {
         .join('')}
     </div>
   `;
+}
+
+// One cell per hole: shows the winning side's points in their team colour, or the
+// tied value in neutral black when nobody has a unique highest score that hole.
+function renderHoleSummary() {
+  const cells = holes.map((hole) => {
+    const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
+    const points = computeHolePoints(hole, holeScores);
+
+    let valueHtml = '<span class="hole-summary__value hole-summary__value--empty">–</span>';
+    if (points) {
+      const entries = [...points.entries()];
+      const maxPts = Math.max(...entries.map(([, pts]) => pts));
+      const winners = entries.filter(([, pts]) => pts === maxPts);
+      if (winners.length === 1) {
+        const side = sides.find((s) => s.key === winners[0][0]);
+        valueHtml = `<span class="hole-summary__value" style="color:${side.color}">${maxPts}</span>`;
+      } else {
+        valueHtml = `<span class="hole-summary__value hole-summary__value--tie">${maxPts}</span>`;
+      }
+    }
+
+    const activeClass = hole.hole_number === currentHole ? ' hole-summary__cell--active' : '';
+    return `
+      <button type="button" class="hole-summary__cell${activeClass}" data-hole="${hole.hole_number}">
+        <span class="hole-summary__num">${hole.hole_number}</span>
+        ${valueHtml}
+      </button>
+    `;
+  });
+
+  holeSummaryEl.innerHTML = `
+    <div class="hole-summary__row">${cells.slice(0, 9).join('')}</div>
+    <div class="hole-summary__row">${cells.slice(9, 18).join('')}</div>
+  `;
+
+  holeSummaryEl.querySelectorAll('[data-hole]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentHole = parseInt(btn.dataset.hole, 10);
+      renderHole();
+    });
+  });
 }
 
 function renderHole() {
@@ -459,8 +523,12 @@ function renderHole() {
     if (currentHole < 18) {
       currentHole += 1;
       renderHole();
+    } else {
+      renderHoleSummary();
     }
   });
+
+  renderHoleSummary();
 }
 
 async function init() {
@@ -500,11 +568,11 @@ async function init() {
   ] = await Promise.all([
     supabase
       .from('match_players')
-      .select('player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex ) )')
+      .select('player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )')
       .eq('match_id', matchId),
     supabase.from('courses').select('id').eq('day', match.day).single(),
     supabase.from('scores').select('player_id, hole, gross_strokes').eq('match_id', matchId),
-    supabase.from('competition_types').select('id, name, points').order('name'),
+    supabase.from('competition_types').select('id, name, points, counts_toward_bonus').order('sort_order'),
     supabase.from('competition_results').select('hole, competition_type_id, winner_id').eq('day', match.day),
   ]);
 

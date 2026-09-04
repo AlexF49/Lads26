@@ -469,7 +469,7 @@ function renderHole() {
       <div class="bonus-grid__row bonus-grid__row--header">
         <span></span>
         <span>—</span>
-        ${matchPlayersFlat.map((p) => `<span style="color:${p.color}">${p.name.split(' ')[0]}</span>`).join('')}
+        ${matchPlayersFlat.map((p) => `<span style="color:${p.color}">${p.nickname}</span>`).join('')}
       </div>
       ${manualTypes
         .map((ct) => {
@@ -787,7 +787,7 @@ async function init() {
   ] = await Promise.all([
     supabase
       .from('match_players')
-      .select('player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )')
+      .select('player_id, side, players ( name, nickname, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )')
       .eq('match_id', matchId),
     supabase.from('courses').select('id').eq('day', match.day).single(),
     supabase.from('scores').select('player_id, hole, gross_strokes').eq('match_id', matchId),
@@ -830,6 +830,7 @@ async function init() {
   matchPlayersFlat = matchPlayers.map((mp) => ({
     playerId: mp.player_id,
     name: mp.players.name,
+    nickname: mp.players.nickname ?? mp.players.name.split(' ')[0],
     color: mp.players.teams.color_hex,
   }));
 

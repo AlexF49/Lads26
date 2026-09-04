@@ -17,6 +17,7 @@ function renderPlayers(players, teams) {
       (p) => `
     <tr data-player-id="${p.id}">
       <td>${p.name}</td>
+      <td><input class="admin-input" type="text" data-field="nickname" value="${p.nickname ?? ''}" /></td>
       <td>
         <select class="admin-select" data-field="team_id">
           ${teams.map((t) => `<option value="${t.id}" ${t.id === p.team_id ? 'selected' : ''}>${t.name}</option>`).join('')}
@@ -89,7 +90,7 @@ async function init() {
   const [{ data: teams, error: teamsError }, { data: players, error: playersError }, { data: types, error: typesError }] =
     await Promise.all([
       supabase.from('teams').select('id, name').order('id'),
-      supabase.from('players').select('id, name, team_id, seed, handicap, handicap_day1, handicap_day2, handicap_day3').order('name'),
+      supabase.from('players').select('id, name, nickname, team_id, seed, handicap, handicap_day1, handicap_day2, handicap_day3').order('name'),
       supabase
         .from('competition_types')
         .select('id, name, points, points_day1, points_day2, points_day3, sort_order')

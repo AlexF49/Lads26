@@ -56,10 +56,13 @@ function driversRemaining(playerId) {
   return Math.max(0, MIN_DRIVES - driven);
 }
 
-function driveDotsHtml(remaining) {
+function driveDotsHtml(remaining, color) {
   return `<span class="drive-dots">${Array.from(
     { length: MIN_DRIVES },
-    (_, i) => `<span class="drive-dot${i >= remaining ? ' drive-dot--used' : ''}"></span>`
+    (_, i) =>
+      i >= remaining
+        ? `<span class="drive-dot drive-dot--used"></span>`
+        : `<span class="drive-dot" style="background:${color}"></span>`
   ).join('')}</span>`;
 }
 
@@ -270,7 +273,7 @@ function renderTotals() {
               .map((n, idx) => {
                 const dots =
                   match.format === 'greensomes' && s.key === 'pair'
-                    ? driveDotsHtml(driversRemaining(s.playerIds[idx]))
+                    ? driveDotsHtml(driversRemaining(s.playerIds[idx]), s.color)
                     : '';
                 return `<span>${dots}${n.name} (${n.handicap})</span>`;
               })

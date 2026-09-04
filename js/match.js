@@ -8,6 +8,7 @@ import {
   netEagleAwards,
   teeTimeForMatch,
   pointsForDay,
+  betterballHammerSuccess,
 } from './matchLogic.js';
 
 const STORAGE_KEY = 'lads26_player_id';
@@ -40,6 +41,8 @@ let competitionTypes; // [{ id, name, points }]
 let scoresByHole = new Map();
 // Map<holeNumber, Map<competitionTypeId, winnerPlayerId>>
 let bonusByHole = new Map();
+// Map<holeNumber, Set<'pair'|'single'>> — Betterball only.
+let hammersByHole = new Map();
 let currentHole = 1;
 
 function stepper(id, value, min = 1, max = 15) {
@@ -106,11 +109,36 @@ function bonusPointsByPlayer() {
   return totals;
 }
 
+// Hammers remaining per side: starts at 2, loses one per failed call, keeps it on success.
+function hammerCounts() {
+  const remaining = new Map([
+    ['pair', 2],
+    ['single', 2],
+  ]);
+  if (match.format !== 'betterball') return remaining;
+  for (const hole of holes) {
+    const called = hammersByHole.get(hole.hole_number);
+    if (!called || called.size === 0) continue;
+    const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
+    for (const sideKey of called) {
+      const success = betterballHammerSuccess(sides, matchMinHandicap, hole, holeScores, sideKey);
+      if (success === false) remaining.set(sideKey, Math.max(0, remaining.get(sideKey) - 1));
+    }
+  }
+  return remaining;
+}
+
+function hammerIconsHtml(remaining) {
+  return `<div class="totals__hammers">${[0, 1]
+    .map((i) => `<span class="hammer-icon${i >= remaining ? ' hammer-icon--lost' : ''}">🔨</span>`)
+    .join('')}</div>`;
+}
+
 function renderTotals() {
   const running = new Map(sides.map((s) => [s.key, 0]));
   for (const hole of holes) {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
-    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores);
+    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores, hammersByHole.get(hole.hole_number));
     if (!points) continue;
     for (const [key, pts] of points) {
       running.set(key, running.get(key) + pts);
@@ -118,6 +146,7 @@ function renderTotals() {
   }
 
   const bonusTotals = bonusPointsByPlayer();
+  const hammerRemaining = hammerCounts();
 
   totalsEl.innerHTML = `
     <div class="totals__row">
@@ -127,6 +156,7 @@ function renderTotals() {
         <div class="totals__side" style="color:${s.color}">
           <span class="totals__team">${s.flagEmoji ?? ''} ${s.teamName}</span>
           <strong>${running.get(s.key)}</strong>
+          ${match.format === 'betterball' ? hammerIconsHtml(hammerRemaining.get(s.key)) : ''}
           <div class="totals__names">
             ${s.namesWithHandicap.map((n) => `<span>${n.name} (${n.handicap})</span>`).join('')}
           </div>
@@ -192,7 +222,7 @@ function singlesCircleHtml(points) {
 function renderHoleSummary() {
   const cells = holes.map((hole) => {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
-    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores);
+    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores, hammersByHole.get(hole.hole_number));
 
     let valueHtml = '<span class="hole-summary__value hole-summary__value--empty">–</span>';
     if (points && match.format === 'singles') {
@@ -256,6 +286,12 @@ function renderHole() {
     `;
   } else if (match.format === 'betterball') {
     const [pairSide, singleSide] = sides;
+    const calledHammers = hammersByHole.get(currentHole) ?? new Set();
+    const hammerToggleHtml = (sideKey, side) => `
+      <label class="hammer-toggle" style="color:${side.color}">
+        <input type="checkbox" data-hammer="${sideKey}" ${calledHammers.has(sideKey) ? 'checked' : ''} />
+        🔨 ${side.teamName} Hammer
+      </label>`;
     inputsHtml =
       pairSide.members
         .map((m) => {
@@ -268,6 +304,7 @@ function renderHole() {
           </div>`;
         })
         .join('') +
+      hammerToggleHtml('pair', pairSide) +
       (() => {
         const m = singleSide.members[0];
         const val = holeScores.get(m.playerId) ?? hole.par;
@@ -277,7 +314,8 @@ function renderHole() {
             ${stepper(m.playerId, val)}
             <span class="score-row__net" data-net="${m.playerId}"></span>
           </div>`;
-      })();
+      })() +
+      hammerToggleHtml('single', singleSide);
   } else {
     inputsHtml = sides
       .map((s) => {
@@ -393,7 +431,10 @@ function renderHole() {
       if (el) el.textContent = netLabel(net, hole.par);
     }
 
-    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, previewScores);
+    const calledHammers = new Set(
+      [...holeCardEl.querySelectorAll('[data-hammer]:checked')].map((el) => el.dataset.hammer)
+    );
+    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, previewScores, calledHammers);
     const pointsEl = document.getElementById('hole-points');
     if (points) {
       pointsEl.innerHTML = sides
@@ -424,6 +465,7 @@ function renderHole() {
   const stepperIds = match.format === 'betterball' ? [...sides[0].members.map((m) => m.playerId), sides[1].members[0].playerId] : match.format === 'greensomes' ? ['pair', 'single'] : sides.map((s) => s.playerIds[0]);
 
   stepperIds.forEach((id) => wireStepper(holeCardEl, id, 1, 15, updatePreview));
+  holeCardEl.querySelectorAll('[data-hammer]').forEach((el) => el.addEventListener('change', updatePreview));
 
   updatePreview();
 
@@ -502,6 +544,38 @@ function renderHole() {
     }
     bonusByHole.set(currentHole, newBonusSelections);
 
+    // Hammer calls (Betterball only): a checked box means that side laid a hammer this hole.
+    if (match.format === 'betterball') {
+      const calledHammers = [...holeCardEl.querySelectorAll('[data-hammer]:checked')].map((el) => el.dataset.hammer);
+      const uncalledHammers = ['pair', 'single'].filter((k) => !calledHammers.includes(k));
+
+      if (calledHammers.length) {
+        const { error: hammerError } = await supabase
+          .from('hammers')
+          .upsert(
+            calledHammers.map((side) => ({ match_id: matchId, hole: currentHole, side })),
+            { onConflict: 'match_id,hole,side' }
+          );
+        if (hammerError) {
+          setStatus(`Could not save hammer: ${hammerError.message}`, true);
+          return;
+        }
+      }
+      if (uncalledHammers.length) {
+        const { error: hammerDeleteError } = await supabase
+          .from('hammers')
+          .delete()
+          .eq('match_id', matchId)
+          .eq('hole', currentHole)
+          .in('side', uncalledHammers);
+        if (hammerDeleteError) {
+          setStatus(`Could not save hammer: ${hammerDeleteError.message}`, true);
+          return;
+        }
+      }
+      hammersByHole.set(currentHole, new Set(calledHammers));
+    }
+
     setStatus('Saved ✓');
     renderTotals();
 
@@ -550,6 +624,7 @@ async function init() {
     { data: existingScores, error: scoresError },
     { data: types, error: typesError },
     { data: existingBonus, error: bonusError },
+    { data: existingHammers, error: hammersError },
   ] = await Promise.all([
     supabase
       .from('match_players')
@@ -559,10 +634,11 @@ async function init() {
     supabase.from('scores').select('player_id, hole, gross_strokes').eq('match_id', matchId),
     supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated').order('sort_order'),
     supabase.from('competition_results').select('hole, competition_type_id, winner_id').eq('day', match.day),
+    supabase.from('hammers').select('hole, side').eq('match_id', matchId),
   ]);
 
-  if (mpError || courseError || scoresError || typesError || bonusError) {
-    setStatus(`Could not load match data: ${(mpError || courseError || scoresError || typesError || bonusError).message}`, true);
+  if (mpError || courseError || scoresError || typesError || bonusError || hammersError) {
+    setStatus(`Could not load match data: ${(mpError || courseError || scoresError || typesError || bonusError || hammersError).message}`, true);
     return;
   }
   competitionTypes = types;
@@ -604,6 +680,12 @@ async function init() {
   for (const row of existingBonus ?? []) {
     if (!bonusByHole.has(row.hole)) bonusByHole.set(row.hole, new Map());
     bonusByHole.get(row.hole).set(row.competition_type_id, row.winner_id);
+  }
+
+  hammersByHole = new Map();
+  for (const row of existingHammers ?? []) {
+    if (!hammersByHole.has(row.hole)) hammersByHole.set(row.hole, new Set());
+    hammersByHole.get(row.hole).add(row.side);
   }
 
   // Resume at the first hole without a full set of saved scores. Every format writes

@@ -34,6 +34,7 @@ async function loadEventData() {
     { data: holes },
     { data: competitionTypes },
     { data: competitionResults },
+    { data: hammers },
   ] = await Promise.all([
     supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
     supabase.from('players').select('id, name, team_id').order('name'),
@@ -48,6 +49,7 @@ async function loadEventData() {
     supabase.from('holes').select('course_id, hole_number, par, stroke_index'),
     supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated'),
     supabase.from('competition_results').select('day, winner_id, competition_type_id'),
+    supabase.from('hammers').select('match_id, hole, side'),
   ]);
 
   if (!teams || !players || !matches) return null;
@@ -67,6 +69,7 @@ async function loadEventData() {
     holes: holes ?? [],
     competitionTypes: competitionTypes ?? [],
     competitionResults: competitionResults ?? [],
+    hammers: hammers ?? [],
   });
 
   return teamTotals.map((t) => ({ ...t, roster: rosterByTeam.get(t.id) ?? [] }));

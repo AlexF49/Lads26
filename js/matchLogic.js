@@ -127,8 +127,37 @@ function holeMultiplier(hole) {
   return hole.hole_number === 18 ? 2 : 1;
 }
 
-// holeScores: Map<playerId, grossStrokes>. Returns Map<sideKey, points> or null if incomplete.
-export function computeHolePoints(format, sides, matchMinHandicap, hole, holeScores) {
+// Betterball's per-player net scores for a hole, or null if any of the 3 is missing.
+function betterballNets(sides, matchMinHandicap, hole, holeScores) {
+  const [pairSide, singleSide] = sides;
+  const grossA = holeScores.get(pairSide.members[0].playerId);
+  const grossB = holeScores.get(pairSide.members[1].playerId);
+  const singleGross = holeScores.get(singleSide.members[0].playerId);
+  if (grossA == null || grossB == null || singleGross == null) return null;
+  return {
+    netA: netScore(grossA, relativeHandicap(pairSide.members[0].handicap, matchMinHandicap), hole.stroke_index),
+    netB: netScore(grossB, relativeHandicap(pairSide.members[1].handicap, matchMinHandicap), hole.stroke_index),
+    netSingle: netScore(singleGross, relativeHandicap(singleSide.members[0].handicap, matchMinHandicap), hole.stroke_index),
+  };
+}
+
+// Hammer Clause (Betterball only): either side can call a hammer on a hole for double
+// points. The pair succeeds if one member beats the single's net score outright and the
+// other at least ties it; the single succeeds only by beating both pair members outright.
+// Returns true/false once the hole is fully scored, or null while it's still incomplete
+// (so callers can tell "not yet resolved" apart from "resolved and failed").
+export function betterballHammerSuccess(sides, matchMinHandicap, hole, holeScores, sideKey) {
+  const nets = betterballNets(sides, matchMinHandicap, hole, holeScores);
+  if (!nets) return null;
+  const { netA, netB, netSingle } = nets;
+  if (sideKey === 'pair') return Math.max(netA, netB) <= netSingle && Math.min(netA, netB) < netSingle;
+  if (sideKey === 'single') return netSingle < netA && netSingle < netB;
+  return null;
+}
+
+// holeScores: Map<playerId, grossStrokes>. hammerSideKeys: Set of side keys ('pair'/'single')
+// that called a Hammer this hole (Betterball only). Returns Map<sideKey, points> or null if incomplete.
+export function computeHolePoints(format, sides, matchMinHandicap, hole, holeScores, hammerSideKeys = new Set()) {
   const mult = holeMultiplier(hole);
 
   if (format === 'greensomes') {
@@ -147,21 +176,16 @@ export function computeHolePoints(format, sides, matchMinHandicap, hole, holeSco
 
   if (format === 'betterball') {
     const [pairSide, singleSide] = sides;
-    const pairNets = pairSide.members.map((m) => holeScores.get(m.playerId));
-    const singleGross = holeScores.get(singleSide.members[0].playerId);
-    if (pairNets.some((v) => v == null) || singleGross == null) return null;
-    const netA = netScore(pairNets[0], relativeHandicap(pairSide.members[0].handicap, matchMinHandicap), hole.stroke_index);
-    const netB = netScore(pairNets[1], relativeHandicap(pairSide.members[1].handicap, matchMinHandicap), hole.stroke_index);
-    const bestPairNet = Math.min(netA, netB);
-    const netSingle = netScore(
-      singleGross,
-      relativeHandicap(singleSide.members[0].handicap, matchMinHandicap),
-      hole.stroke_index
-    );
-    const [p1, p2] = twoWayPoints(bestPairNet, netSingle);
+    const nets = betterballNets(sides, matchMinHandicap, hole, holeScores);
+    if (!nets) return null;
+    const bestPairNet = Math.min(nets.netA, nets.netB);
+    const [p1, p2] = twoWayPoints(bestPairNet, nets.netSingle);
+    const pairHammerMult = hammerSideKeys.has('pair') && betterballHammerSuccess(sides, matchMinHandicap, hole, holeScores, 'pair') ? 2 : 1;
+    const singleHammerMult =
+      hammerSideKeys.has('single') && betterballHammerSuccess(sides, matchMinHandicap, hole, holeScores, 'single') ? 2 : 1;
     return new Map([
-      ['pair', p1 * mult],
-      ['single', p2 * mult],
+      ['pair', p1 * mult * pairHammerMult],
+      ['single', p2 * mult * singleHammerMult],
     ]);
   }
 
@@ -215,7 +239,18 @@ export function netEagleAwards(format, sides, matchMinHandicap, hole, holeScores
 // totals — the single source of truth for both the landing page's team cards and the
 // leaderboard page. Every player on a side that wins/ties hole points gets full credit
 // for those points (a pair isn't split); Net Eagle stays split per netEagleAwards above.
-export function aggregateEvent({ teams, players, matches, matchPlayers, scores, courses, holes, competitionTypes, competitionResults }) {
+export function aggregateEvent({
+  teams,
+  players,
+  matches,
+  matchPlayers,
+  scores,
+  courses,
+  holes,
+  competitionTypes,
+  competitionResults,
+  hammers = [],
+}) {
   const holesByDay = new Map();
   for (const course of courses) {
     holesByDay.set(course.day, new Map(holes.filter((h) => h.course_id === course.id).map((h) => [h.hole_number, h])));
@@ -233,6 +268,14 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
     const byHole = scoresByMatch.get(row.match_id);
     if (!byHole.has(row.hole)) byHole.set(row.hole, new Map());
     byHole.get(row.hole).set(row.player_id, row.gross_strokes);
+  }
+
+  const hammersByMatch = new Map();
+  for (const row of hammers) {
+    if (!hammersByMatch.has(row.match_id)) hammersByMatch.set(row.match_id, new Map());
+    const byHole = hammersByMatch.get(row.match_id);
+    if (!byHole.has(row.hole)) byHole.set(row.hole, new Set());
+    byHole.get(row.hole).add(row.side);
   }
 
   const playerById = new Map(players.map((p) => [p.id, p]));
@@ -263,6 +306,7 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
     const matchMinHandicap = computeMatchMinHandicap(sides);
     const holesForDay = holesByDay.get(match.day) ?? new Map();
     const scoresForMatch = scoresByMatch.get(match.id) ?? new Map();
+    const hammersForMatch = hammersByMatch.get(match.id) ?? new Map();
 
     const sidePoints = new Map(sides.map((s) => [s.key, 0]));
     const sideBonus = new Map(sides.map((s) => [s.key, 0]));
@@ -276,7 +320,7 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
 
     for (const hole of holesForDay.values()) {
       const holeScores = scoresForMatch.get(hole.hole_number) ?? new Map();
-      const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores);
+      const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores, hammersForMatch.get(hole.hole_number));
       if (points) {
         holesPlayed += 1;
         for (const [key, pts] of points) {

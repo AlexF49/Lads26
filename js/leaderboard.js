@@ -126,6 +126,7 @@ async function loadAndRender() {
     { data: holes },
     { data: competitionTypes },
     { data: competitionResults },
+    { data: hammers },
   ] = await Promise.all([
     supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
     supabase.from('players').select('id, name, team_id').order('name'),
@@ -140,6 +141,7 @@ async function loadAndRender() {
     supabase.from('holes').select('course_id, hole_number, par, stroke_index'),
     supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated'),
     supabase.from('competition_results').select('day, winner_id, competition_type_id'),
+    supabase.from('hammers').select('match_id, hole, side'),
   ]);
 
   if (!teams || !players || !matches) {
@@ -159,6 +161,7 @@ async function loadAndRender() {
     holes: holes ?? [],
     competitionTypes: competitionTypes ?? [],
     competitionResults: competitionResults ?? [],
+    hammers: hammers ?? [],
   });
 
   setStatus('');
@@ -185,6 +188,7 @@ function watchForChanges() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'scores' }, loadAndRender)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'competition_results' }, loadAndRender)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players' }, loadAndRender)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'hammers' }, loadAndRender)
     .subscribe();
 }
 

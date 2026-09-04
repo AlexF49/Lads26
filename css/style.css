@@ -997,6 +997,35 @@ body {
   text-align: center;
 }
 
+.totals__hammers {
+  display: flex;
+  gap: 0.15rem;
+  justify-content: center;
+  margin: 0.15rem 0;
+}
+
+.hammer-icon {
+  font-size: 0.8rem;
+}
+
+.hammer-icon--lost {
+  opacity: 0.25;
+}
+
+.hammer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.hammer-toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 /* ---- Hole-by-hole summary strip ---- */
 .hole-summary {
   background: var(--bg-card);

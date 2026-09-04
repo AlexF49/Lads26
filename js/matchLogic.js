@@ -122,8 +122,15 @@ export function relativeHandicap(handicap, matchMinHandicap) {
   return handicap - matchMinHandicap;
 }
 
+// Hole 18 is worth double points in every format.
+function holeMultiplier(hole) {
+  return hole.hole_number === 18 ? 2 : 1;
+}
+
 // holeScores: Map<playerId, grossStrokes>. Returns Map<sideKey, points> or null if incomplete.
 export function computeHolePoints(format, sides, matchMinHandicap, hole, holeScores) {
+  const mult = holeMultiplier(hole);
+
   if (format === 'greensomes') {
     const [pairSide, singleSide] = sides;
     const pairGross = holeScores.get(pairSide.playerIds[0]);
@@ -133,8 +140,8 @@ export function computeHolePoints(format, sides, matchMinHandicap, hole, holeSco
     const netSingle = netScore(singleGross, relativeHandicap(singleSide.handicap, matchMinHandicap), hole.stroke_index);
     const [p1, p2] = twoWayPoints(netPair, netSingle);
     return new Map([
-      ['pair', p1],
-      ['single', p2],
+      ['pair', p1 * mult],
+      ['single', p2 * mult],
     ]);
   }
 
@@ -153,8 +160,8 @@ export function computeHolePoints(format, sides, matchMinHandicap, hole, holeSco
     );
     const [p1, p2] = twoWayPoints(bestPairNet, netSingle);
     return new Map([
-      ['pair', p1],
-      ['single', p2],
+      ['pair', p1 * mult],
+      ['single', p2 * mult],
     ]);
   }
 
@@ -165,7 +172,7 @@ export function computeHolePoints(format, sides, matchMinHandicap, hole, holeSco
   });
   if (nets.some((v) => v == null)) return null;
   const pts = threeWayPoints(...nets);
-  return new Map(sides.map((s, i) => [s.key, pts[i]]));
+  return new Map(sides.map((s, i) => [s.key, pts[i] * mult]));
 }
 
 // Net Eagle is automatic, not a manual pick: whenever a net score is 2-under-par or

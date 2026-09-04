@@ -10,7 +10,6 @@ const contentEl = document.getElementById('rules-content');
 const FORMATS = [
   {
     title: 'Greensomes',
-    emoji: '⛳',
     day: 1,
     rules: [
       `Handicap is average of player's handicap`,
@@ -27,7 +26,6 @@ const FORMATS = [
   },
   {
     title: 'Betterball',
-    emoji: '⛳',
     day: 2,
     rules: [
       'Each player plays their own ball',
@@ -47,7 +45,6 @@ const FORMATS = [
   },
   {
     title: 'Singles',
-    emoji: '⛳',
     day: 3,
     rules: [
       'Singles Matchplay against your own seeded opponents.',
@@ -110,6 +107,22 @@ function renderFormatCard(f, ctByName) {
   contentEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// A white golf ball (with a dimple pattern) reads poorly on the button's own white
+// background, so it's drawn on a dark green circle for contrast — same green as the
+// hole-scoring page — with "Day N" printed on the ball itself.
+function golfBallSvg(label) {
+  const dimples = [
+    [20, 17], [32, 13], [44, 17], [13, 29], [51, 29], [19, 47], [45, 47], [32, 51],
+  ];
+  return `
+    <svg viewBox="0 0 64 64" class="golf-ball" role="img" aria-label="${label}">
+      <circle cx="32" cy="32" r="32" fill="#0b3d1e" />
+      <circle cx="32" cy="32" r="27" fill="#f7f7f2" stroke="#dcdcd3" stroke-width="1" />
+      ${dimples.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2" fill="#dcdcd3" />`).join('')}
+      <text x="32" y="36" text-anchor="middle" font-size="11" font-weight="800" fill="#0b3d1e" font-family="Arial, sans-serif">${label}</text>
+    </svg>`;
+}
+
 function render(competitionTypes) {
   const ctByName = new Map(competitionTypes.map((ct) => [ct.name, ct]));
 
@@ -122,7 +135,7 @@ function render(competitionTypes) {
   formatRowEl.innerHTML = FORMATS.map(
     (f) => `
     <button type="button" class="bio-player" data-format="${f.title}">
-      <span class="bio-avatar"><span class="bio-avatar__initials" style="background:#0b3d1e">${f.emoji}</span></span>
+      <span class="bio-avatar">${golfBallSvg(`Day ${f.day}`)}</span>
       <span class="bio-player__name">${f.title}</span>
     </button>`
   ).join('');

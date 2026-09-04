@@ -506,6 +506,11 @@ body {
   display: flex;
 }
 
+.golf-ball {
+  width: 100%;
+  height: 100%;
+}
+
 .bio-avatar--large {
   width: 4.5rem;
   height: 4.5rem;

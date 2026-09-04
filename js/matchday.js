@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { teeTimeForMatch } from './matchLogic.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
@@ -61,7 +62,7 @@ function renderAssignedCard(match, players, globalMatchNumber) {
 
   card.innerHTML = `
     <div class="match-card__header">
-      <h3>Match ${globalMatchNumber}</h3>
+      <h3>Match ${globalMatchNumber} · ${teeTimeForMatch(day, match.match_number)}</h3>
       <button type="button" class="edit-btn" data-match-id="${match.id}">Edit</button>
     </div>
     ${match.format === 'singles' ? sideHtml(singles, 'Players') : sideHtml(pair, 'Pair') + sideHtml(singles, 'Single')}
@@ -98,7 +99,7 @@ function renderPickerCard(match, allPlayers, assignedElsewhere, globalMatchNumbe
 
   card.innerHTML = `
     <div class="match-card__header">
-      <h3>Match ${globalMatchNumber}</h3>
+      <h3>Match ${globalMatchNumber} · ${teeTimeForMatch(day, match.match_number)}</h3>
     </div>
     <form class="picker-form">
       ${selectsHtml}

@@ -6,6 +6,7 @@ import {
   relativeHandicap,
   computeHolePoints,
   netEagleAwards,
+  teeTimeForMatch,
 } from './matchLogic.js';
 
 const STORAGE_KEY = 'lads26_player_id';
@@ -540,7 +541,7 @@ async function init() {
   backLinkEl.href = `matchday.html?day=${match.day}`;
 
   const globalMatchNumber = (match.day - 1) * 3 + match.match_number;
-  matchTitleEl.textContent = `Match ${globalMatchNumber}`;
+  matchTitleEl.textContent = `Match ${globalMatchNumber} · ${teeTimeForMatch(match.day, match.match_number)}`;
 
   const [
     { data: matchPlayers, error: mpError },

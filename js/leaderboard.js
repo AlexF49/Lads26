@@ -48,7 +48,7 @@ function teamBlockHtml(s, align) {
 
 function matchCardHtml(m) {
   if (!m.setUp) {
-    return `<div class="lb-match lb-match--empty">Match ${m.globalNumber} · Not set up yet</div>`;
+    return `<div class="lb-match lb-match--empty">Match ${m.globalNumber} · ${m.teeTime} · Not set up yet</div>`;
   }
 
   const scoreHtml = m.sides
@@ -71,7 +71,7 @@ function matchCardHtml(m) {
     <div class="lb-match">
       <div class="lb-match__row">${bodyHtml}</div>
       <div class="lb-match__footer">
-        <span>Match ${m.globalNumber}</span>
+        <span>Match ${m.globalNumber} · ${m.teeTime}</span>
         <span>${m.holesPlayed}/18 holes</span>
       </div>
     </div>

@@ -7,6 +7,19 @@ export function handicapForDay(player, day) {
   return player[`handicap_day${day}`] ?? player.handicap ?? 0;
 }
 
+// First tee time and gap are set per day; each day's 3 matches go off in match_number order.
+const TEE_OFF_START = { 1: { hour: 14, minute: 42 }, 2: { hour: 9, minute: 12 }, 3: { hour: 9, minute: 56 } };
+const TEE_GAP_MINUTES = 8;
+
+export function teeTimeForMatch(day, matchNumber) {
+  const start = TEE_OFF_START[day];
+  if (!start || !matchNumber) return '';
+  const totalMinutes = start.hour * 60 + start.minute + (matchNumber - 1) * TEE_GAP_MINUTES;
+  const hour = Math.floor(totalMinutes / 60) % 24;
+  const minute = totalMinutes % 60;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
 // matchPlayers: rows from match_players joined with players(..., teams(...)).
 export function buildSides(format, day, matchPlayers) {
   if (format === 'greensomes') {
@@ -226,8 +239,9 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
   for (const match of matches) {
     const mps = matchPlayersByMatch.get(match.id) ?? [];
     const globalNumber = (match.day - 1) * 3 + match.match_number;
+    const teeTime = teeTimeForMatch(match.day, match.match_number);
     if (mps.length === 0) {
-      matchWork.push({ matchId: match.id, day: match.day, format: match.format, globalNumber, setUp: false });
+      matchWork.push({ matchId: match.id, day: match.day, format: match.format, globalNumber, teeTime, setUp: false });
       continue;
     }
 
@@ -279,6 +293,7 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
       day: match.day,
       format: match.format,
       globalNumber,
+      teeTime,
       setUp: true,
       complete: holesPlayed === 18,
       holesPlayed,
@@ -324,6 +339,7 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
           day: m.day,
           format: m.format,
           globalNumber: m.globalNumber,
+          teeTime: m.teeTime,
           setUp: true,
           complete: m.complete,
           holesPlayed: m.holesPlayed,

@@ -566,6 +566,46 @@ body {
   margin-top: 0.15rem;
 }
 
+/* ---- Rules ---- */
+.rules-card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  margin-bottom: 1rem;
+}
+
+.rules-card__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.rules-card__subtitle {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.rules-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.rules-list li {
+  margin-bottom: 0.4rem;
+}
+
+.rules-list li:last-child {
+  margin-bottom: 0;
+}
+
 /* ---- Expenses ---- */
 .expenses-actions {
   display: flex;

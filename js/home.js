@@ -8,7 +8,7 @@ const teamScoresEl = document.getElementById('team-scores');
 const matchCentreTilesEl = document.getElementById('tiles-match-centre');
 const informationTilesEl = document.getElementById('tiles-information');
 
-const MATCH_CENTRE_COMING_SOON = [{ label: 'Rules', emoji: '📖' }];
+const MATCH_CENTRE_COMING_SOON = [];
 const INFORMATION_COMING_SOON = [{ label: 'Info', emoji: 'ℹ️' }];
 
 function tile({ href, emoji, label, subtitle, disabled }) {
@@ -115,6 +115,7 @@ async function init() {
   }
 
   matchCentreTilesEl.appendChild(tile({ href: 'leaderboard.html', emoji: '🏆', label: 'Leaderboard' }));
+  matchCentreTilesEl.appendChild(tile({ href: 'rules.html', emoji: '📖', label: 'Rules' }));
   for (const { label, emoji } of MATCH_CENTRE_COMING_SOON) {
     matchCentreTilesEl.appendChild(tile({ emoji, label, subtitle: 'Coming soon', disabled: true }));
   }

@@ -1,11 +1,18 @@
 import { supabase } from './supabaseClient.js';
 
 const STORAGE_KEY = 'lads26_player_id';
+const ADMIN_UNLOCK_KEY = 'lads26_admin_unlocked';
+const ADMIN_PASSWORD = 'SNBB';
 
 const statusEl = document.getElementById('status');
 const playersBodyEl = document.getElementById('players-body');
 const coursesBodyEl = document.getElementById('courses-body');
 const bonusBodyEl = document.getElementById('bonus-body');
+const adminGateEl = document.getElementById('admin-gate');
+const adminContentEl = document.getElementById('admin-content');
+const adminGateFormEl = document.getElementById('admin-gate-form');
+const adminPasswordEl = document.getElementById('admin-password');
+const adminGateErrorEl = document.getElementById('admin-gate-error');
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
@@ -114,11 +121,6 @@ function renderBonusTypes(types) {
 }
 
 async function init() {
-  if (!localStorage.getItem(STORAGE_KEY)) {
-    window.location.href = 'index.html';
-    return;
-  }
-
   setStatus('Loading…');
 
   const [
@@ -147,4 +149,29 @@ async function init() {
   renderBonusTypes(types ?? []);
 }
 
-init();
+function unlockAdmin() {
+  localStorage.setItem(ADMIN_UNLOCK_KEY, '1');
+  adminGateEl.hidden = true;
+  adminContentEl.hidden = false;
+  init();
+}
+
+adminGateFormEl.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (adminPasswordEl.value === ADMIN_PASSWORD) {
+    adminGateErrorEl.hidden = true;
+    unlockAdmin();
+  } else {
+    adminGateErrorEl.hidden = false;
+    adminPasswordEl.value = '';
+    adminPasswordEl.focus();
+  }
+});
+
+if (!localStorage.getItem(STORAGE_KEY)) {
+  window.location.href = 'index.html';
+} else if (localStorage.getItem(ADMIN_UNLOCK_KEY)) {
+  adminGateEl.hidden = true;
+  adminContentEl.hidden = false;
+  init();
+}

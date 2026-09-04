@@ -15,53 +15,69 @@
       <h1 class="header__title">🔧 Admin</h1>
     </header>
 
-    <p id="status" class="status"></p>
+    <section id="admin-gate" class="modal admin-gate">
+      <h2 class="modal__title">🔒 Admin Access</h2>
+      <form id="admin-gate-form">
+        <label class="modal__label">
+          Password
+          <input type="password" id="admin-password" autocomplete="off" required />
+        </label>
+        <p id="admin-gate-error" class="modal__error" hidden>Incorrect password.</p>
+        <div class="modal__actions">
+          <button type="submit" class="save-btn">Unlock</button>
+        </div>
+      </form>
+    </section>
 
-    <h2 class="admin-section-title">Players</h2>
-    <div class="expenses-table-wrap">
-      <table class="expenses-table" id="players-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Nickname</th>
-            <th>Team</th>
-            <th>Seed</th>
-            <th>Core Hcp</th>
-            <th>Day 1</th>
-            <th>Day 2</th>
-            <th>Day 3</th>
-          </tr>
-        </thead>
-        <tbody id="players-body"></tbody>
-      </table>
-    </div>
+    <div id="admin-content" hidden>
+      <p id="status" class="status"></p>
 
-    <h2 class="admin-section-title">Courses</h2>
-    <div class="expenses-table-wrap">
-      <table class="expenses-table" id="courses-table">
-        <thead>
-          <tr>
-            <th>Course</th>
-            <th>Start</th>
-          </tr>
-        </thead>
-        <tbody id="courses-body"></tbody>
-      </table>
-    </div>
+      <h2 class="admin-section-title">Players</h2>
+      <div class="expenses-table-wrap">
+        <table class="expenses-table" id="players-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Nickname</th>
+              <th>Team</th>
+              <th>Seed</th>
+              <th>Core Hcp</th>
+              <th>Day 1</th>
+              <th>Day 2</th>
+              <th>Day 3</th>
+            </tr>
+          </thead>
+          <tbody id="players-body"></tbody>
+        </table>
+      </div>
 
-    <h2 class="admin-section-title">Bonus Points</h2>
-    <div class="expenses-table-wrap">
-      <table class="expenses-table" id="bonus-table">
-        <thead>
-          <tr>
-            <th>Bonus</th>
-            <th>Day 1</th>
-            <th>Day 2</th>
-            <th>Day 3</th>
-          </tr>
-        </thead>
-        <tbody id="bonus-body"></tbody>
-      </table>
+      <h2 class="admin-section-title">Courses</h2>
+      <div class="expenses-table-wrap">
+        <table class="expenses-table" id="courses-table">
+          <thead>
+            <tr>
+              <th>Course</th>
+              <th>Start</th>
+            </tr>
+          </thead>
+          <tbody id="courses-body"></tbody>
+        </table>
+      </div>
+
+      <h2 class="admin-section-title">Bonus Points</h2>
+      <div class="expenses-table-wrap">
+        <table class="expenses-table" id="bonus-table">
+          <thead>
+            <tr>
+              <th>Bonus</th>
+              <th>Day 1</th>
+              <th>Day 2</th>
+              <th>Day 3</th>
+            </tr>
+          </thead>
+          <tbody id="bonus-body"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 

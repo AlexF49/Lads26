@@ -498,7 +498,7 @@ function renderHole() {
       <span>Hole ${currentHole} of 18</span>
       <button type="button" id="next-hole" ${currentHole === 18 ? 'disabled' : ''}>Next &rarr;</button>
     </div>
-    <p class="hole-card__meta">Par ${hole.par} · Stroke Index ${hole.stroke_index}</p>
+    <p class="hole-card__meta">Par ${hole.par} · Stroke Index ${hole.stroke_index}${hole.yardage_yellow ? ` · ${hole.yardage_yellow}m` : ''}</p>
     ${inputsHtml}
     <div class="hole-card__points" id="hole-points"></div>
     <h4 class="bonus-grid__title">Bonus shots</h4>
@@ -815,7 +815,7 @@ async function init() {
 
   const { data: holesData, error: holesError } = await supabase
     .from('holes')
-    .select('hole_number, par, stroke_index')
+    .select('hole_number, par, stroke_index, yardage_yellow')
     .eq('course_id', course.id)
     .order('hole_number');
   if (holesError) {

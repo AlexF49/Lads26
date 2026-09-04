@@ -167,14 +167,6 @@ body {
   margin-bottom: 1rem;
 }
 
-.header__emblem {
-  width: 1.8rem;
-  height: 1.8rem;
-  border-radius: 6px;
-  vertical-align: middle;
-  margin-right: 0.4rem;
-}
-
 /* ---- Home: team score cards ---- */
 .team-scores {
   display: grid;

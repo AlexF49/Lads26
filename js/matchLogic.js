@@ -7,6 +7,12 @@ export function handicapForDay(player, day) {
   return player[`handicap_day${day}`] ?? player.handicap ?? 0;
 }
 
+// Bonus/competition points are editable per day from the admin page; points_dayN falls
+// back to the base points value for any competition type that hasn't been customised.
+export function pointsForDay(competitionType, day) {
+  return competitionType[`points_day${day}`] ?? competitionType.points;
+}
+
 // First tee time and gap are set per day; each day's 3 matches go off in match_number order.
 const TEE_OFF_START = { 1: { hour: 14, minute: 42 }, 2: { hour: 9, minute: 12 }, 3: { hour: 9, minute: 56 } };
 const TEE_GAP_MINUTES = 8;
@@ -167,17 +173,18 @@ export function computeHolePoints(format, sides, matchMinHandicap, hole, holeSco
 // points. Greensomes splits it 1pt each across the pair (they share one score); every
 // other side/format is fully individual, so a lone player scoring it keeps the full
 // points. Returns Map<playerId, pointsAwarded>.
-export function netEagleAwards(format, sides, matchMinHandicap, hole, holeScores, netEagleType) {
+export function netEagleAwards(format, sides, matchMinHandicap, hole, holeScores, netEagleType, day) {
   const awards = new Map();
   if (!netEagleType) return awards;
   const eagleTarget = hole.par - 2;
-  const perPlayer = format === 'greensomes' ? netEagleType.points / 2 : netEagleType.points;
+  const fullPoints = pointsForDay(netEagleType, day);
+  const perPlayer = format === 'greensomes' ? fullPoints / 2 : fullPoints;
 
   const check = (playerIds, gross, handicap) => {
     if (gross == null) return;
     const net = netScore(gross, relativeHandicap(handicap, matchMinHandicap), hole.stroke_index);
     if (net > eagleTarget) return;
-    const share = format === 'greensomes' && playerIds.length > 1 ? perPlayer : netEagleType.points;
+    const share = format === 'greensomes' && playerIds.length > 1 ? perPlayer : fullPoints;
     playerIds.forEach((id) => awards.set(id, share));
   };
 
@@ -277,7 +284,7 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
         }
       }
 
-      const eagleAwards = netEagleAwards(match.format, sides, matchMinHandicap, hole, holeScores, netEagleType);
+      const eagleAwards = netEagleAwards(match.format, sides, matchMinHandicap, hole, holeScores, netEagleType, match.day);
       for (const [pid, pts] of eagleAwards) {
         const pt = playerTotalsMap.get(pid);
         if (pt) pt.bonusPoints += pts;
@@ -306,21 +313,19 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
   // Pass 2: manual bonus picks (Net Eagle is automatic and already handled in pass 1).
   // Clutch Shot counts toward each player's individual leaderboard total, but stays out
   // of team/match totals — it's tracked as its own separate individual competition there.
-  const teamBonusPointsByTypeId = new Map(
-    competitionTypes.filter((ct) => ct.counts_toward_bonus && !ct.is_automated).map((ct) => [ct.id, ct.points])
+  const teamBonusTypeIds = new Set(
+    competitionTypes.filter((ct) => ct.counts_toward_bonus && !ct.is_automated).map((ct) => ct.id)
   );
-  const playerBonusPointsByTypeId = new Map(
-    competitionTypes.filter((ct) => !ct.is_automated).map((ct) => [ct.id, ct.points])
-  );
+  const playerBonusTypeById = new Map(competitionTypes.filter((ct) => !ct.is_automated).map((ct) => [ct.id, ct]));
   for (const row of competitionResults) {
-    const playerPts = playerBonusPointsByTypeId.get(row.competition_type_id);
-    if (playerPts != null) {
+    const playerType = playerBonusTypeById.get(row.competition_type_id);
+    if (playerType != null) {
       const pt = playerTotalsMap.get(row.winner_id);
-      if (pt) pt.bonusPoints += playerPts;
+      if (pt) pt.bonusPoints += pointsForDay(playerType, row.day);
     }
 
-    const teamPts = teamBonusPointsByTypeId.get(row.competition_type_id);
-    if (teamPts == null) continue;
+    if (!teamBonusTypeIds.has(row.competition_type_id)) continue;
+    const teamPts = pointsForDay(playerType, row.day);
     const teamId = playerById.get(row.winner_id)?.team_id;
     if (teamTotalsMap.has(teamId)) teamTotalsMap.get(teamId).bonus += teamPts;
     const mapping = sideByDayPlayer.get(`${row.day}:${row.winner_id}`);

@@ -7,6 +7,7 @@ import {
   computeHolePoints,
   netEagleAwards,
   teeTimeForMatch,
+  pointsForDay,
 } from './matchLogic.js';
 
 const STORAGE_KEY = 'lads26_player_id';
@@ -87,7 +88,7 @@ function bonusPointsByPlayer() {
   // Clutch Shot is logged here but scored as its own separate competition, not
   // accrued into these running bonus totals.
   const pointsByType = new Map(
-    competitionTypes.filter((ct) => ct.counts_toward_bonus && !ct.is_automated).map((ct) => [ct.id, ct.points])
+    competitionTypes.filter((ct) => ct.counts_toward_bonus && !ct.is_automated).map((ct) => [ct.id, pointsForDay(ct, match.day)])
   );
   const totals = new Map(matchPlayersFlat.map((p) => [p.playerId, 0]));
   for (const winners of bonusByHole.values()) {
@@ -98,7 +99,7 @@ function bonusPointsByPlayer() {
   }
   for (const hole of holes) {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
-    for (const [playerId, pts] of netEagleAwards(match.format, sides, matchMinHandicap, hole, holeScores, netEagleType())) {
+    for (const [playerId, pts] of netEagleAwards(match.format, sides, matchMinHandicap, hole, holeScores, netEagleType(), match.day)) {
       if (totals.has(playerId)) totals.set(playerId, totals.get(playerId) + pts);
     }
   }
@@ -307,7 +308,7 @@ function renderHole() {
           const options = [{ playerId: 'none', label: '—' }, ...matchPlayersFlat];
           return `
           <div class="bonus-grid__row">
-            <span class="bonus-grid__label">${ct.name} <small>(${ct.points}pt)</small></span>
+            <span class="bonus-grid__label">${ct.name} <small>(${pointsForDay(ct, match.day)}pt)</small></span>
             ${options
               .map(
                 (o) => `
@@ -406,7 +407,7 @@ function renderHole() {
     }
 
     const netEagleRow = document.getElementById('net-eagle-row');
-    const awards = netEagleAwards(match.format, sides, matchMinHandicap, hole, previewScores, netEagleType());
+    const awards = netEagleAwards(match.format, sides, matchMinHandicap, hole, previewScores, netEagleType(), match.day);
     if (awards.size) {
       const byPlayer = new Map(matchPlayersFlat.map((p) => [p.playerId, p]));
       const text = [...awards.entries()]
@@ -556,7 +557,7 @@ async function init() {
       .eq('match_id', matchId),
     supabase.from('courses').select('id').eq('day', match.day).single(),
     supabase.from('scores').select('player_id, hole, gross_strokes').eq('match_id', matchId),
-    supabase.from('competition_types').select('id, name, points, counts_toward_bonus, is_automated').order('sort_order'),
+    supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated').order('sort_order'),
     supabase.from('competition_results').select('hole, competition_type_id, winner_id').eq('day', match.day),
   ]);
 

@@ -7,7 +7,7 @@ const playingAsEl = document.getElementById('playing-as');
 const teamScoresEl = document.getElementById('team-scores');
 const tilesEl = document.getElementById('tiles');
 
-const COMING_SOON = [{ label: 'Admin', emoji: '🔧' }];
+const COMING_SOON = [];
 
 function tile({ href, emoji, label, subtitle, disabled }) {
   const el = document.createElement(href ? 'a' : 'div');
@@ -44,7 +44,7 @@ async function loadEventData() {
     supabase.from('scores').select('match_id, day, hole, player_id, gross_strokes'),
     supabase.from('courses').select('id, day'),
     supabase.from('holes').select('course_id, hole_number, par, stroke_index'),
-    supabase.from('competition_types').select('id, name, points, counts_toward_bonus, is_automated'),
+    supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated'),
     supabase.from('competition_results').select('day, winner_id, competition_type_id'),
   ]);
 
@@ -117,6 +117,7 @@ async function init() {
   tilesEl.appendChild(tile({ href: 'history.html', emoji: '📜', label: 'History' }));
   tilesEl.appendChild(tile({ href: 'expenses.html', emoji: '💷', label: 'Expenses' }));
   tilesEl.appendChild(tile({ href: 'gallery.html', emoji: '📷', label: 'Gallery' }));
+  tilesEl.appendChild(tile({ href: 'admin.html', emoji: '🔧', label: 'Admin' }));
 
   for (const { label, emoji } of COMING_SOON) {
     tilesEl.appendChild(tile({ emoji, label, subtitle: 'Coming soon', disabled: true }));

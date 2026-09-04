@@ -217,19 +217,22 @@ create table hazards (
 create table competition_types (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
-  points integer not null,                     -- from Lads 2026.xlsx, Leaderboard tab, Point Allocation row
+  points integer not null,                     -- from Lads 2026.xlsx, Leaderboard tab, Point Allocation row; base/fallback value
+  points_day1 integer,                          -- per-day points, editable from the admin page; falls back to `points` if null
+  points_day2 integer,
+  points_day3 integer,
   sort_order integer not null,
   counts_toward_bonus boolean not null default true,  -- Clutch Shot is tracked but scored separately (its own competition)
   is_automated boolean not null default false  -- Net Eagle is derived from scores, not hand-picked in the bonus grid
 );
 
-insert into competition_types (name, points, sort_order, counts_toward_bonus, is_automated) values
-  ('Net Eagle', 2, 1, true, true),
-  ('Nearest the Pin', 2, 2, true, false),
-  ('Long Putt', 3, 3, true, false),
-  ('Chip In', 3, 4, true, false),
-  ('Drive the Green', 3, 5, true, false),
-  ('Clutch Shot', 1, 6, false, false);
+insert into competition_types (name, points, points_day1, points_day2, points_day3, sort_order, counts_toward_bonus, is_automated) values
+  ('Net Eagle', 2, 2, 2, 2, 1, true, true),
+  ('Nearest the Pin', 2, 2, 2, 2, 2, true, false),
+  ('Long Putt', 3, 3, 3, 3, 3, true, false),
+  ('Chip In', 3, 3, 3, 3, 4, true, false),
+  ('Drive the Green', 3, 3, 3, 3, 5, true, false),
+  ('Clutch Shot', 1, 1, 1, 1, 6, false, false);
 
 create table competition_results (
   id uuid primary key default gen_random_uuid(),
@@ -329,8 +332,6 @@ create policy "public read" on expenses for select using (true);
 create policy "public read" on photos for select using (true);
 
 -- Write access for the tables players/scorers write to directly.
--- (players/courses/holes/settings are admin-managed and get their write policies
--- added when the admin panel session builds that flow.)
 create policy "public write" on matches for insert with check (true);
 create policy "public write insert" on match_players for insert with check (true);
 create policy "public write delete" on match_players for delete using (true);
@@ -343,6 +344,10 @@ create policy "public write delete" on competition_results for delete using (tru
 create policy "public write" on corrections for insert with check (true);
 create policy "public write" on expenses for insert with check (true);
 create policy "public write" on photos for insert with check (true);
+
+-- Admin page: editing player team/handicaps and per-day bonus points.
+create policy "public write update" on players for update using (true);
+create policy "public write update" on competition_types for update using (true);
 
 -- ============================================================================
 -- Realtime — the leaderboard subscribes to these so it re-sorts live as scores

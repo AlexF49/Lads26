@@ -151,13 +151,51 @@ function renderTotals() {
 
 // One cell per hole: shows the winning side's points in their team colour, or the
 // tied value in neutral black when nobody has a unique highest score that hole.
+// Singles is 3-way, so a single coloured number can't show the full picture. Instead,
+// render a small circle split by rank group: clear 1st/2nd/3rd -> top half winner colour,
+// bottom half 2nd-place colour (3rd isn't shown). Tied 1st -> left/right split between the
+// two tied colours. Clear winner with 2nd/3rd tied -> top half winner, bottom two quarters
+// split between the tied pair. Full 3-way tie -> three equal thirds.
+function singlesCircleHtml(points) {
+  const sideByKey = (key) => sides.find((s) => s.key === key);
+  const groups = new Map();
+  for (const [key, pts] of points) {
+    if (!groups.has(pts)) groups.set(pts, []);
+    groups.get(pts).push(key);
+  }
+  const rankedPts = [...groups.keys()].sort((a, b) => b - a);
+
+  let bg;
+  if (rankedPts.length === 3) {
+    const winnerColor = sideByKey(groups.get(rankedPts[0])[0]).color;
+    const secondColor = sideByKey(groups.get(rankedPts[1])[0]).color;
+    bg = `conic-gradient(from -90deg, ${winnerColor} 0deg 180deg, ${secondColor} 180deg 360deg)`;
+  } else if (rankedPts.length === 2) {
+    const topGroup = groups.get(rankedPts[0]);
+    if (topGroup.length === 2) {
+      const [a, b] = topGroup.map((k) => sideByKey(k).color);
+      bg = `conic-gradient(${a} 0deg 180deg, ${b} 180deg 360deg)`;
+    } else {
+      const winnerColor = sideByKey(topGroup[0]).color;
+      const [a, b] = groups.get(rankedPts[1]).map((k) => sideByKey(k).color);
+      bg = `conic-gradient(from -90deg, ${winnerColor} 0deg 180deg, ${b} 180deg 270deg, ${a} 270deg 360deg)`;
+    }
+  } else {
+    const [a, b, c] = [...points.keys()].map((k) => sideByKey(k).color);
+    bg = `conic-gradient(${a} 0deg 120deg, ${b} 120deg 240deg, ${c} 240deg 360deg)`;
+  }
+  return `<span class="hole-summary__circle" style="background:${bg}"></span>`;
+}
+
 function renderHoleSummary() {
   const cells = holes.map((hole) => {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
     const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores);
 
     let valueHtml = '<span class="hole-summary__value hole-summary__value--empty">–</span>';
-    if (points) {
+    if (points && match.format === 'singles') {
+      valueHtml = singlesCircleHtml(points);
+    } else if (points) {
       const entries = [...points.entries()];
       const maxPts = Math.max(...entries.map(([, pts]) => pts));
       const winners = entries.filter(([, pts]) => pts === maxPts);

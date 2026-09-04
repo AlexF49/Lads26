@@ -3,12 +3,14 @@ import { pointsForDay } from './matchLogic.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
+const formatRowEl = document.getElementById('format-row');
 const contentEl = document.getElementById('rules-content');
 
 // Sourced from https://sites.google.com/view/lads-lads-lads/rules
 const FORMATS = [
   {
     title: 'Greensomes',
+    emoji: '⛳',
     day: 1,
     rules: [
       `Handicap is average of player's handicap`,
@@ -25,6 +27,7 @@ const FORMATS = [
   },
   {
     title: 'Betterball',
+    emoji: '⛳',
     day: 2,
     rules: [
       'Each player plays their own ball',
@@ -44,6 +47,7 @@ const FORMATS = [
   },
   {
     title: 'Singles',
+    emoji: '⛳',
     day: 3,
     rules: [
       'Singles Matchplay against your own seeded opponents.',
@@ -88,11 +92,9 @@ function bonusLines(ctByName, day) {
   return lines;
 }
 
-function render(competitionTypes) {
-  const ctByName = new Map(competitionTypes.map((ct) => [ct.name, ct]));
-
-  const formatsHtml = FORMATS.map(
-    (f) => `
+function renderFormatCard(f, ctByName) {
+  contentEl.hidden = false;
+  contentEl.innerHTML = `
     <div class="rules-card">
       <h2 class="rules-card__title">${f.title}</h2>
       ${list(f.rules)}
@@ -100,10 +102,30 @@ function render(competitionTypes) {
       ${list(f.scoring)}
       <h3 class="rules-card__subtitle">Bonus Points</h3>
       ${list([...(f.extraBonus ?? []), ...bonusLines(ctByName, f.day)])}
-    </div>`
+    </div>`;
+  contentEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function render(competitionTypes) {
+  const ctByName = new Map(competitionTypes.map((ct) => [ct.name, ct]));
+
+  function selectFormat(f) {
+    formatRowEl.querySelectorAll('.bio-player').forEach((b) => b.classList.remove('bio-player--active'));
+    formatRowEl.querySelector(`[data-format="${f.title}"]`).classList.add('bio-player--active');
+    renderFormatCard(f, ctByName);
+  }
+
+  formatRowEl.innerHTML = FORMATS.map(
+    (f) => `
+    <button type="button" class="bio-player" data-format="${f.title}">
+      <span class="bio-avatar"><span class="bio-avatar__initials" style="background:#0b3d1e">${f.emoji}</span></span>
+      <span class="bio-player__name">${f.title}</span>
+    </button>`
   ).join('');
 
-  contentEl.innerHTML = formatsHtml;
+  formatRowEl.querySelectorAll('[data-format]').forEach((btn) => {
+    btn.addEventListener('click', () => selectFormat(FORMATS.find((f) => f.title === btn.dataset.format)));
+  });
 }
 
 async function init() {
@@ -118,6 +140,7 @@ async function init() {
     .order('sort_order');
 
   if (error) {
+    contentEl.hidden = false;
     contentEl.innerHTML = `<p class="status status--error">Could not load bonus points: ${error.message}</p>`;
     return;
   }

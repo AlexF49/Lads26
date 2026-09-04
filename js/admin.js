@@ -22,6 +22,7 @@ function renderPlayers(players, teams) {
           ${teams.map((t) => `<option value="${t.id}" ${t.id === p.team_id ? 'selected' : ''}>${t.name}</option>`).join('')}
         </select>
       </td>
+      <td><input class="admin-input" type="number" data-field="seed" value="${p.seed ?? ''}" /></td>
       <td><input class="admin-input" type="number" data-field="handicap" value="${p.handicap ?? ''}" /></td>
       <td><input class="admin-input" type="number" data-field="handicap_day1" value="${p.handicap_day1 ?? ''}" /></td>
       <td><input class="admin-input" type="number" data-field="handicap_day2" value="${p.handicap_day2 ?? ''}" /></td>
@@ -88,7 +89,7 @@ async function init() {
   const [{ data: teams, error: teamsError }, { data: players, error: playersError }, { data: types, error: typesError }] =
     await Promise.all([
       supabase.from('teams').select('id, name').order('id'),
-      supabase.from('players').select('id, name, team_id, handicap, handicap_day1, handicap_day2, handicap_day3').order('name'),
+      supabase.from('players').select('id, name, team_id, seed, handicap, handicap_day1, handicap_day2, handicap_day3').order('name'),
       supabase
         .from('competition_types')
         .select('id, name, points, points_day1, points_day2, points_day3, sort_order')

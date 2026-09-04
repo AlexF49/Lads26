@@ -37,7 +37,7 @@ async function loadEventData() {
     { data: hammers },
   ] = await Promise.all([
     supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
-    supabase.from('players').select('id, name, team_id').order('name'),
+    supabase.from('players').select('id, name, team_id').order('seed'),
     supabase.from('matches').select('id, day, match_number, format'),
     supabase
       .from('match_players')

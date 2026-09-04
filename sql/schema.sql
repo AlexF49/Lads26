@@ -34,22 +34,23 @@ create table players (
   handicap_day1 integer,            -- playing handicap, Day 1 (Greensomes)
   handicap_day2 integer,            -- playing handicap, Day 2 (Betterball matchplay)
   handicap_day3 integer,            -- playing handicap, Day 3 (Singles)
+  seed integer,                     -- 1/2/3 within their team, used to order the roster display
   bio text,                         -- player bios subpage
   photo_url text,                   -- player bios subpage
   stats jsonb default '{}'::jsonb,  -- freeform career stats for the bios subpage
   created_at timestamptz default now()
 );
 
-insert into players (name, team_id, handicap, handicap_day1, handicap_day2, handicap_day3) values
-  ('Nick Bourne',    'europe',    12, 12, 12, 12),
-  ('Ben Brown',      'europe',    18, 18, 18, 18),
-  ('James Pilling',  'europe',    26, 26, 26, 26),
-  ('James Kibbey',   'usa',       12, 12, 12, 12),
-  ('Alan Forrest',   'usa',       18, 18, 18, 18),
-  ('Alex Robinson',  'usa',       24, 24, 24, 24),
-  ('Paul Cooper',    'australia', 15, 15, 15, 15),
-  ('Andrew Conway',  'australia', 18, 18, 18, 18),
-  ('Jamie March',    'australia', 36, 36, 36, 36);
+insert into players (name, team_id, handicap, handicap_day1, handicap_day2, handicap_day3, seed) values
+  ('Nick Bourne',    'europe',    12, 12, 12, 12, 1),
+  ('Ben Brown',      'europe',    18, 18, 18, 18, 2),
+  ('James Pilling',  'europe',    26, 26, 26, 26, 3),
+  ('James Kibbey',   'usa',       12, 12, 12, 12, 1),
+  ('Alan Forrest',   'usa',       18, 18, 18, 18, 2),
+  ('Alex Robinson',  'usa',       24, 24, 24, 24, 3),
+  ('Paul Cooper',    'australia', 15, 15, 15, 15, 1),
+  ('Andrew Conway',  'australia', 18, 18, 18, 18, 2),
+  ('Jamie March',    'australia', 36, 36, 36, 36, 3);
 
 -- ============================================================================
 -- 3. Courses & holes

@@ -149,10 +149,11 @@ export function computeHolePoints(format, sides, matchMinHandicap, hole, holeSco
   return new Map(sides.map((s, i) => [s.key, pts[i]]));
 }
 
-// Net Eagle is automatic, not a manual pick: whenever a net score is 2 under par, that's
-// worth the "Net Eagle" points. Greensomes splits it 1pt each across the pair (they share
-// one score); every other side/format is fully individual, so a lone player scoring it
-// keeps the full points. Returns Map<playerId, pointsAwarded>.
+// Net Eagle is automatic, not a manual pick: whenever a net score is 2-under-par or
+// better (an eagle or anything stronger, e.g. albatross), that's worth the "Net Eagle"
+// points. Greensomes splits it 1pt each across the pair (they share one score); every
+// other side/format is fully individual, so a lone player scoring it keeps the full
+// points. Returns Map<playerId, pointsAwarded>.
 export function netEagleAwards(format, sides, matchMinHandicap, hole, holeScores, netEagleType) {
   const awards = new Map();
   if (!netEagleType) return awards;
@@ -162,7 +163,7 @@ export function netEagleAwards(format, sides, matchMinHandicap, hole, holeScores
   const check = (playerIds, gross, handicap) => {
     if (gross == null) return;
     const net = netScore(gross, relativeHandicap(handicap, matchMinHandicap), hole.stroke_index);
-    if (net !== eagleTarget) return;
+    if (net > eagleTarget) return;
     const share = format === 'greensomes' && playerIds.length > 1 ? perPlayer : netEagleType.points;
     playerIds.forEach((id) => awards.set(id, share));
   };

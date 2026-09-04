@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient.js';
 import { aggregateEvent } from './matchLogic.js';
+import { buildPrediction } from './predictor.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
@@ -59,7 +60,7 @@ async function loadEventData() {
     if (rosterByTeam.has(p.team_id)) rosterByTeam.get(p.team_id).push(p.name);
   }
 
-  const { teamTotals } = aggregateEvent({
+  const { teamTotals, perMatch } = aggregateEvent({
     teams,
     players,
     matches: matches ?? [],
@@ -72,7 +73,14 @@ async function loadEventData() {
     hammers: hammers ?? [],
   });
 
-  return teamTotals.map((t) => ({ ...t, roster: rosterByTeam.get(t.id) ?? [] }));
+  const predictions = buildPrediction({ teamTotals, perMatch });
+  const winProbabilityByTeam = new Map(predictions.map((p) => [p.teamId, p.winProbability]));
+
+  return teamTotals.map((t) => ({
+    ...t,
+    roster: rosterByTeam.get(t.id) ?? [],
+    winProbability: winProbabilityByTeam.get(t.id) ?? 0,
+  }));
 }
 
 function renderTeamScores(teamTotals) {
@@ -80,13 +88,19 @@ function renderTeamScores(teamTotals) {
     .map(
       (t) => `
     <div class="team-score-card" style="border-color:${t.color_hex}; color:${t.color_hex}">
-      <div class="team-score-card__flag">${t.flag_emoji ?? ''}</div>
-      <div class="team-score-card__name">${t.name}</div>
-      <div class="team-score-card__members">${t.roster.map((name) => `<span>${name}</span>`).join('')}</div>
-      <div class="team-score-card__total">${t.total}</div>
-      <div class="team-score-card__breakdown">
-        <span>Matchplay ${t.matchplay}</span>
-        <span>Bonus +${t.bonus}</span>
+      <div class="team-score-card__body">
+        <div class="team-score-card__flag">${t.flag_emoji ?? ''}</div>
+        <div class="team-score-card__name">${t.name}</div>
+        <div class="team-score-card__members">${t.roster.map((name) => `<span>${name}</span>`).join('')}</div>
+        <div class="team-score-card__total">${t.total}</div>
+        <div class="team-score-card__breakdown">
+          <span>Matchplay ${t.matchplay}</span>
+          <span>Bonus +${t.bonus}</span>
+        </div>
+      </div>
+      <div class="team-score-card__predictor" style="background:${t.color_hex}">
+        <span class="team-score-card__predictor-pct">${Math.round(t.winProbability * 100)}%</span>
+        <span class="team-score-card__predictor-label">to win</span>
       </div>
     </div>`
     )

@@ -206,6 +206,149 @@ body {
   gap: 0.05rem;
 }
 
+/* ---- Leaderboard ---- */
+.lb-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.lb-tab {
+  flex: 1;
+  padding: 0.7rem;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lb-tab--active {
+  background: #ffffff;
+  color: var(--text);
+}
+
+.lb-team-totals {
+  margin-bottom: 1.25rem;
+}
+
+.lb-day-heading {
+  color: #ffffff;
+  opacity: 0.9;
+  margin: 1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.lb-matches {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.lb-match {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.lb-match--empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.lb-match__title {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+  color: var(--text);
+}
+
+.lb-match__status {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.lb-match__side {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  padding: 0.25rem 0;
+}
+
+.lb-match__team {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.lb-match__names {
+  grid-column: 2;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.lb-match__points {
+  font-size: 1.1rem;
+  grid-row: 1;
+  grid-column: 3;
+}
+
+.lb-match__bonus {
+  grid-column: 2;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.lb-players {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.lb-player-row {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 0.6rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.lb-player-row__rank {
+  font-weight: 800;
+  color: var(--text-muted);
+  width: 1.4rem;
+}
+
+.lb-player-row__flag {
+  font-size: 1.3rem;
+}
+
+.lb-player-row__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.lb-player-row__name {
+  font-weight: 700;
+}
+
+.lb-player-row__detail {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.lb-player-row__total {
+  font-size: 1.4rem;
+}
+
 /* ---- Home nav tiles ---- */
 .tiles {
   display: grid;

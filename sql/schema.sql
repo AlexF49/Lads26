@@ -341,3 +341,11 @@ create policy "public write delete" on competition_results for delete using (tru
 create policy "public write" on corrections for insert with check (true);
 create policy "public write" on expenses for insert with check (true);
 create policy "public write" on photos for insert with check (true);
+
+-- ============================================================================
+-- Realtime — the leaderboard subscribes to these so it re-sorts live as scores
+-- and bonus picks are saved, without needing a manual refresh.
+-- ============================================================================
+alter publication supabase_realtime add table scores;
+alter publication supabase_realtime add table competition_results;
+alter publication supabase_realtime add table match_players;

@@ -8,6 +8,9 @@ const day = parseInt(params.get('day'), 10);
 
 const dayTitleEl = document.getElementById('day-title');
 const courseNameEl = document.getElementById('course-name');
+const pickupTimeEl = document.getElementById('pickup-time');
+
+const PICKUP_TIME_BY_DAY = { 1: '1:30pm', 2: '8:15am', 3: '7:55am' };
 const statusEl = document.getElementById('status');
 const matchesEl = document.getElementById('matches');
 
@@ -212,6 +215,7 @@ async function init() {
   const { data: course } = await supabase.from('courses').select('name').eq('day', day).single();
   dayTitleEl.textContent = `Match Day ${day}`;
   courseNameEl.textContent = course?.name ?? '';
+  pickupTimeEl.textContent = `Pick-up: ${PICKUP_TIME_BY_DAY[day] ?? ''}`;
 
   render();
 }

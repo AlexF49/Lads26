@@ -377,6 +377,15 @@ body {
   font-size: 1.1rem;
 }
 
+.totals__row--bonus .totals__side {
+  text-align: center;
+}
+
+.totals__bonus-label {
+  opacity: 0.75;
+  font-size: 0.7rem;
+}
+
 /* ---- Bonus shots grid ---- */
 .bonus-grid__title {
   margin: 1rem 0 0.5rem;
@@ -419,6 +428,22 @@ body {
 .bonus-grid__radio input {
   width: 1.3rem;
   height: 1.3rem;
+}
+
+.bonus-grid__row--auto {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f4f8f5;
+  border-radius: 8px;
+  padding: 0.4rem 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.bonus-grid__auto-result {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--europe);
 }
 
 .hole-card {

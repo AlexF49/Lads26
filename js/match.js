@@ -203,17 +203,58 @@ function sideStrokeAdvantage(hole) {
   return withExtra.length === 1 ? withExtra[0].side : null;
 }
 
+// Net Eagle is automatic, not a manual pick: whenever a net score is 2 under par, that's
+// worth the "Net Eagle" points (from competitionTypes). Greensomes splits it 1pt each
+// across the pair (they share one score); every other side/format is fully individual,
+// so a lone player scoring it keeps the full points.
+function netEagleAwards(hole, holeScores) {
+  const netEagleType = competitionTypes.find((ct) => ct.name === 'Net Eagle');
+  const awards = new Map();
+  if (!netEagleType) return awards;
+  const eagleTarget = hole.par - 2;
+  const perPlayer = match.format === 'greensomes' ? netEagleType.points / 2 : netEagleType.points;
+
+  const check = (playerIds, gross, handicap) => {
+    if (gross == null) return;
+    const net = netScore(gross, relativeHandicap(handicap), hole.stroke_index);
+    if (net !== eagleTarget) return;
+    const share = match.format === 'greensomes' && playerIds.length > 1 ? perPlayer : netEagleType.points;
+    playerIds.forEach((id) => awards.set(id, share));
+  };
+
+  if (match.format === 'greensomes') {
+    const [pairSide, singleSide] = sides;
+    check(pairSide.playerIds, holeScores.get(pairSide.playerIds[0]), pairSide.handicap);
+    check([singleSide.playerIds[0]], holeScores.get(singleSide.playerIds[0]), singleSide.handicap);
+  } else if (match.format === 'betterball') {
+    const [pairSide, singleSide] = sides;
+    pairSide.members.forEach((m) => check([m.playerId], holeScores.get(m.playerId), m.handicap));
+    const sm = singleSide.members[0];
+    check([sm.playerId], holeScores.get(sm.playerId), sm.handicap);
+  } else {
+    sides.forEach((s) => check([s.playerIds[0]], holeScores.get(s.playerIds[0]), s.handicap));
+  }
+
+  return awards;
+}
+
 function bonusPointsByPlayer() {
   // Clutch Shot is logged here but scored as its own separate competition, not
   // accrued into these running bonus totals.
   const pointsByType = new Map(
-    competitionTypes.filter((ct) => ct.counts_toward_bonus).map((ct) => [ct.id, ct.points])
+    competitionTypes.filter((ct) => ct.counts_toward_bonus && !ct.is_automated).map((ct) => [ct.id, ct.points])
   );
   const totals = new Map(matchPlayersFlat.map((p) => [p.playerId, 0]));
   for (const winners of bonusByHole.values()) {
     for (const [typeId, winnerId] of winners) {
       if (!totals.has(winnerId) || !pointsByType.has(typeId)) continue;
       totals.set(winnerId, totals.get(winnerId) + pointsByType.get(typeId));
+    }
+  }
+  for (const hole of holes) {
+    const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
+    for (const [playerId, pts] of netEagleAwards(hole, holeScores)) {
+      if (totals.has(playerId)) totals.set(playerId, totals.get(playerId) + pts);
     }
   }
   return totals;
@@ -248,10 +289,16 @@ function renderTotals() {
         .join('')}
     </div>
     <div class="totals__row totals__row--bonus">
-      ${matchPlayersFlat
+      ${sides
+        .flatMap((s) => (s.members ? s.members.map((m) => m.playerId) : s.playerIds))
+        .map((playerId) => matchPlayersFlat.find((p) => p.playerId === playerId))
         .map(
-          (p) =>
-            `<div class="totals__side" style="color:${p.color}"><strong>+${bonusTotals.get(p.playerId)}</strong><span>${p.name} bonus</span></div>`
+          (p) => `
+        <div class="totals__side" style="color:${p.color}">
+          <strong>+${bonusTotals.get(p.playerId)}</strong>
+          <span>${p.name}</span>
+          <span class="totals__bonus-label">bonus</span>
+        </div>`
         )
         .join('')}
     </div>
@@ -362,14 +409,16 @@ function renderHole() {
   }
 
   const bonusSelections = bonusByHole.get(currentHole) ?? new Map();
+  const manualTypes = competitionTypes.filter((ct) => !ct.is_automated);
   const bonusGridHtml = `
     <div class="bonus-grid">
+      <div class="bonus-grid__row bonus-grid__row--auto" id="net-eagle-row"></div>
       <div class="bonus-grid__row bonus-grid__row--header">
         <span></span>
         <span>—</span>
         ${matchPlayersFlat.map((p) => `<span style="color:${p.color}">${p.name.split(' ')[0]}</span>`).join('')}
       </div>
-      ${competitionTypes
+      ${manualTypes
         .map((ct) => {
           const selected = bonusSelections.get(ct.id) ?? 'none';
           const options = [{ playerId: 'none', label: '—' }, ...matchPlayersFlat];
@@ -398,7 +447,7 @@ function renderHole() {
     </div>
     <p class="hole-card__meta">Par ${hole.par} · Stroke Index ${hole.stroke_index}</p>
     ${inputsHtml}
-    <p class="hole-card__points" id="hole-points"></p>
+    <div class="hole-card__points" id="hole-points"></div>
     <h4 class="bonus-grid__title">Bonus shots</h4>
     ${bonusGridHtml}
     <button type="button" id="save-hole" class="save-btn">Save${currentHole < 18 ? ' & Next' : ''}</button>
@@ -463,9 +512,26 @@ function renderHole() {
     const points = computeHolePoints(hole, previewScores);
     const pointsEl = document.getElementById('hole-points');
     if (points) {
-      pointsEl.textContent = sides.map((s) => `${s.label}: ${points.get(s.key)}pt`).join(' · ');
+      pointsEl.innerHTML = sides
+        .map((s) => {
+          const pts = points.get(s.key);
+          return `<div style="color:${s.color}">${s.teamName}: ${pts}pt${pts === 1 ? '' : 's'}</div>`;
+        })
+        .join('');
     } else {
-      pointsEl.textContent = '';
+      pointsEl.innerHTML = '';
+    }
+
+    const netEagleRow = document.getElementById('net-eagle-row');
+    const awards = netEagleAwards(hole, previewScores);
+    if (awards.size) {
+      const byPlayer = new Map(matchPlayersFlat.map((p) => [p.playerId, p]));
+      const text = [...awards.entries()]
+        .map(([playerId, pts]) => `${byPlayer.get(playerId)?.name ?? ''} +${pts}pt${pts === 1 ? '' : 's'}`)
+        .join(' · ');
+      netEagleRow.innerHTML = `<span class="bonus-grid__label">🦅 Net Eagle <small>(auto)</small></span><span class="bonus-grid__auto-result">${text}</span>`;
+    } else {
+      netEagleRow.innerHTML = `<span class="bonus-grid__label">🦅 Net Eagle <small>(auto)</small></span><span class="bonus-grid__auto-result">—</span>`;
     }
 
     return previewScores;
@@ -519,7 +585,7 @@ function renderHole() {
     const bonusUpserts = [];
     const bonusDeletes = [];
     const newBonusSelections = new Map();
-    for (const ct of competitionTypes) {
+    for (const ct of manualTypes) {
       const checked = holeCardEl.querySelector(`input[name="bonus-${ct.id}"]:checked`)?.value ?? 'none';
       if (checked === 'none') {
         bonusDeletes.push(ct.id);
@@ -607,7 +673,7 @@ async function init() {
       .eq('match_id', matchId),
     supabase.from('courses').select('id').eq('day', match.day).single(),
     supabase.from('scores').select('player_id, hole, gross_strokes').eq('match_id', matchId),
-    supabase.from('competition_types').select('id, name, points, counts_toward_bonus').order('sort_order'),
+    supabase.from('competition_types').select('id, name, points, counts_toward_bonus, is_automated').order('sort_order'),
     supabase.from('competition_results').select('hole, competition_type_id, winner_id').eq('day', match.day),
   ]);
 

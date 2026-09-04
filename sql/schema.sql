@@ -219,15 +219,17 @@ create table competition_types (
   name text not null unique,
   points integer not null,                     -- from Lads 2026.xlsx, Leaderboard tab, Point Allocation row
   sort_order integer not null,
-  counts_toward_bonus boolean not null default true  -- Clutch Shot is tracked but scored separately (its own competition)
+  counts_toward_bonus boolean not null default true,  -- Clutch Shot is tracked but scored separately (its own competition)
+  is_automated boolean not null default false  -- Net Eagle is derived from scores, not hand-picked in the bonus grid
 );
 
-insert into competition_types (name, points, sort_order, counts_toward_bonus) values
-  ('Nearest the Pin', 2, 1, true),
-  ('Long Putt', 3, 2, true),
-  ('Chip In', 3, 3, true),
-  ('Drive the Green', 3, 4, true),
-  ('Clutch Shot', 1, 5, false);
+insert into competition_types (name, points, sort_order, counts_toward_bonus, is_automated) values
+  ('Net Eagle', 2, 1, true, true),
+  ('Nearest the Pin', 2, 2, true, false),
+  ('Long Putt', 3, 3, true, false),
+  ('Chip In', 3, 4, true, false),
+  ('Drive the Green', 3, 5, true, false),
+  ('Clutch Shot', 1, 6, false, false);
 
 create table competition_results (
   id uuid primary key default gen_random_uuid(),

@@ -1,5 +1,12 @@
 import { supabase } from './supabaseClient.js';
-import { netScore, pairHandicap, twoWayPoints, threeWayPoints, strokesReceived } from './scoring.js';
+import { netScore, strokesReceived } from './scoring.js';
+import {
+  buildSides,
+  computeMatchMinHandicap,
+  relativeHandicap,
+  computeHolePoints,
+  netEagleAwards,
+} from './matchLogic.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
@@ -33,90 +40,6 @@ let scoresByHole = new Map();
 let bonusByHole = new Map();
 let currentHole = 1;
 
-function handicapForDay(player) {
-  return player[`handicap_day${match.day}`] ?? player.handicap ?? 0;
-}
-
-function buildSides(matchPlayers) {
-  const byId = (id) => matchPlayers.find((mp) => mp.player_id === id);
-
-  if (match.format === 'greensomes') {
-    const pair = matchPlayers.filter((mp) => mp.side === 'pair');
-    const single = matchPlayers.find((mp) => mp.side === 'single');
-    // Greensomes plays one shared ball, so the pair plays off one combined handicap
-    // (average of the two) — both names show that same number, per the xlsx convention.
-    const pairHcp = pairHandicap(handicapForDay(pair[0].players), handicapForDay(pair[1].players));
-    return [
-      {
-        key: 'pair',
-        label: pair.map((p) => p.players.name).join(' & '),
-        color: pair[0].players.teams.color_hex,
-        teamName: pair[0].players.teams.name,
-        flagEmoji: pair[0].players.teams.flag_emoji,
-        playerIds: pair.map((p) => p.player_id),
-        handicap: pairHcp,
-        namesWithHandicap: pair.map((p) => ({ name: p.players.name, handicap: pairHcp })),
-      },
-      {
-        key: 'single',
-        label: single.players.name,
-        color: single.players.teams.color_hex,
-        teamName: single.players.teams.name,
-        flagEmoji: single.players.teams.flag_emoji,
-        playerIds: [single.player_id],
-        handicap: handicapForDay(single.players),
-        namesWithHandicap: [{ name: single.players.name, handicap: handicapForDay(single.players) }],
-      },
-    ];
-  }
-
-  if (match.format === 'betterball') {
-    const pair = matchPlayers.filter((mp) => mp.side === 'pair');
-    const single = matchPlayers.find((mp) => mp.side === 'single');
-    return [
-      {
-        key: 'pair',
-        label: pair.map((p) => p.players.name).join(' & '),
-        color: pair[0].players.teams.color_hex,
-        teamName: pair[0].players.teams.name,
-        flagEmoji: pair[0].players.teams.flag_emoji,
-        // Representative handicap for this side (used only to find the match's lowest
-        // handicap — min(min(a,b), c) === min(a,b,c), so this doesn't skew that). Actual
-        // scoring below always uses each member's own individual handicap.
-        handicap: Math.min(handicapForDay(pair[0].players), handicapForDay(pair[1].players)),
-        members: pair.map((p) => ({
-          playerId: p.player_id,
-          label: p.players.name,
-          handicap: handicapForDay(p.players),
-        })),
-        namesWithHandicap: pair.map((p) => ({ name: p.players.name, handicap: handicapForDay(p.players) })),
-      },
-      {
-        key: 'single',
-        label: single.players.name,
-        color: single.players.teams.color_hex,
-        teamName: single.players.teams.name,
-        flagEmoji: single.players.teams.flag_emoji,
-        handicap: handicapForDay(single.players),
-        members: [{ playerId: single.player_id, label: single.players.name, handicap: handicapForDay(single.players) }],
-        namesWithHandicap: [{ name: single.players.name, handicap: handicapForDay(single.players) }],
-      },
-    ];
-  }
-
-  // singles — 3 independent players
-  return matchPlayers.map((mp) => ({
-    key: mp.player_id,
-    label: mp.players.name,
-    color: mp.players.teams.color_hex,
-    teamName: mp.players.teams.name,
-    flagEmoji: mp.players.teams.flag_emoji,
-    playerIds: [mp.player_id],
-    handicap: handicapForDay(mp.players),
-    namesWithHandicap: [{ name: mp.players.name, handicap: handicapForDay(mp.players) }],
-  }));
-}
-
 function stepper(id, value, min = 1, max = 15) {
   return `
     <div class="stepper" data-stepper="${id}">
@@ -146,96 +69,17 @@ function netLabel(net, par) {
   return `Net ${net} (${toPar > 0 ? '+' : ''}${toPar})`;
 }
 
-// Match-play strokes are given off the *difference* from the lowest handicap in this
-// match, not each side's full individual allowance — the lowest handicap plays scratch.
-function relativeHandicap(handicap) {
-  return handicap - matchMinHandicap;
-}
-
-function computeHolePoints(hole, holeScores) {
-  // holeScores: Map<playerId, grossStrokes>. Returns Map<sideKey, points> or null if incomplete.
-  if (match.format === 'greensomes') {
-    const [pairSide, singleSide] = sides;
-    const pairGross = holeScores.get(pairSide.playerIds[0]);
-    const singleGross = holeScores.get(singleSide.playerIds[0]);
-    if (pairGross == null || singleGross == null) return null;
-    const netPair = netScore(pairGross, relativeHandicap(pairSide.handicap), hole.stroke_index);
-    const netSingle = netScore(singleGross, relativeHandicap(singleSide.handicap), hole.stroke_index);
-    const [p1, p2] = twoWayPoints(netPair, netSingle);
-    return new Map([
-      ['pair', p1],
-      ['single', p2],
-    ]);
-  }
-
-  if (match.format === 'betterball') {
-    const [pairSide, singleSide] = sides;
-    const pairNets = pairSide.members.map((m) => holeScores.get(m.playerId));
-    const singleGross = holeScores.get(singleSide.members[0].playerId);
-    if (pairNets.some((v) => v == null) || singleGross == null) return null;
-    const netA = netScore(pairNets[0], relativeHandicap(pairSide.members[0].handicap), hole.stroke_index);
-    const netB = netScore(pairNets[1], relativeHandicap(pairSide.members[1].handicap), hole.stroke_index);
-    const bestPairNet = Math.min(netA, netB);
-    const netSingle = netScore(singleGross, relativeHandicap(singleSide.members[0].handicap), hole.stroke_index);
-    const [p1, p2] = twoWayPoints(bestPairNet, netSingle);
-    return new Map([
-      ['pair', p1],
-      ['single', p2],
-    ]);
-  }
-
-  // singles
-  const nets = sides.map((s) => {
-    const gross = holeScores.get(s.playerIds[0]);
-    return gross == null ? null : netScore(gross, relativeHandicap(s.handicap), hole.stroke_index);
-  });
-  if (nets.some((v) => v == null)) return null;
-  const pts = threeWayPoints(...nets);
-  return new Map(sides.map((s, i) => [s.key, pts[i]]));
-}
-
 // The side (if any) that receives an extra match-play stroke on this hole, based purely
 // on handicaps and stroke index — independent of whether the hole has been scored yet.
 function sideStrokeAdvantage(hole) {
   const withExtra = sides
-    .map((s) => ({ side: s, extra: strokesReceived(relativeHandicap(s.handicap), hole.stroke_index) }))
+    .map((s) => ({ side: s, extra: strokesReceived(relativeHandicap(s.handicap, matchMinHandicap), hole.stroke_index) }))
     .filter((x) => x.extra > 0);
   return withExtra.length === 1 ? withExtra[0].side : null;
 }
 
-// Net Eagle is automatic, not a manual pick: whenever a net score is 2 under par, that's
-// worth the "Net Eagle" points (from competitionTypes). Greensomes splits it 1pt each
-// across the pair (they share one score); every other side/format is fully individual,
-// so a lone player scoring it keeps the full points.
-function netEagleAwards(hole, holeScores) {
-  const netEagleType = competitionTypes.find((ct) => ct.name === 'Net Eagle');
-  const awards = new Map();
-  if (!netEagleType) return awards;
-  const eagleTarget = hole.par - 2;
-  const perPlayer = match.format === 'greensomes' ? netEagleType.points / 2 : netEagleType.points;
-
-  const check = (playerIds, gross, handicap) => {
-    if (gross == null) return;
-    const net = netScore(gross, relativeHandicap(handicap), hole.stroke_index);
-    if (net !== eagleTarget) return;
-    const share = match.format === 'greensomes' && playerIds.length > 1 ? perPlayer : netEagleType.points;
-    playerIds.forEach((id) => awards.set(id, share));
-  };
-
-  if (match.format === 'greensomes') {
-    const [pairSide, singleSide] = sides;
-    check(pairSide.playerIds, holeScores.get(pairSide.playerIds[0]), pairSide.handicap);
-    check([singleSide.playerIds[0]], holeScores.get(singleSide.playerIds[0]), singleSide.handicap);
-  } else if (match.format === 'betterball') {
-    const [pairSide, singleSide] = sides;
-    pairSide.members.forEach((m) => check([m.playerId], holeScores.get(m.playerId), m.handicap));
-    const sm = singleSide.members[0];
-    check([sm.playerId], holeScores.get(sm.playerId), sm.handicap);
-  } else {
-    sides.forEach((s) => check([s.playerIds[0]], holeScores.get(s.playerIds[0]), s.handicap));
-  }
-
-  return awards;
+function netEagleType() {
+  return competitionTypes.find((ct) => ct.name === 'Net Eagle');
 }
 
 function bonusPointsByPlayer() {
@@ -253,7 +97,7 @@ function bonusPointsByPlayer() {
   }
   for (const hole of holes) {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
-    for (const [playerId, pts] of netEagleAwards(hole, holeScores)) {
+    for (const [playerId, pts] of netEagleAwards(match.format, sides, matchMinHandicap, hole, holeScores, netEagleType())) {
       if (totals.has(playerId)) totals.set(playerId, totals.get(playerId) + pts);
     }
   }
@@ -264,7 +108,7 @@ function renderTotals() {
   const running = new Map(sides.map((s) => [s.key, 0]));
   for (const hole of holes) {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
-    const points = computeHolePoints(hole, holeScores);
+    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores);
     if (!points) continue;
     for (const [key, pts] of points) {
       running.set(key, running.get(key) + pts);
@@ -310,7 +154,7 @@ function renderTotals() {
 function renderHoleSummary() {
   const cells = holes.map((hole) => {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
-    const points = computeHolePoints(hole, holeScores);
+    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores);
 
     let valueHtml = '<span class="hole-summary__value hole-summary__value--empty">–</span>';
     if (points) {
@@ -490,7 +334,7 @@ function renderHole() {
     if (match.format === 'greensomes' || match.format === 'singles') {
       sides.forEach((s) => {
         const gross = previewScores.get(s.playerIds[0]);
-        const net = netScore(gross, relativeHandicap(s.handicap), hole.stroke_index);
+        const net = netScore(gross, relativeHandicap(s.handicap, matchMinHandicap), hole.stroke_index);
         const el = holeCardEl.querySelector(`[data-net="${s.key === 'pair' || s.key === 'single' ? s.key : s.playerIds[0]}"]`);
         if (el) el.textContent = netLabel(net, hole.par);
       });
@@ -498,18 +342,18 @@ function renderHole() {
       const [pairSide, singleSide] = sides;
       pairSide.members.forEach((m) => {
         const gross = previewScores.get(m.playerId);
-        const net = netScore(gross, relativeHandicap(m.handicap), hole.stroke_index);
+        const net = netScore(gross, relativeHandicap(m.handicap, matchMinHandicap), hole.stroke_index);
         const el = holeCardEl.querySelector(`[data-net="${m.playerId}"]`);
         if (el) el.textContent = netLabel(net, hole.par);
       });
       const sm = singleSide.members[0];
       const gross = previewScores.get(sm.playerId);
-      const net = netScore(gross, relativeHandicap(sm.handicap), hole.stroke_index);
+      const net = netScore(gross, relativeHandicap(sm.handicap, matchMinHandicap), hole.stroke_index);
       const el = holeCardEl.querySelector(`[data-net="${sm.playerId}"]`);
       if (el) el.textContent = netLabel(net, hole.par);
     }
 
-    const points = computeHolePoints(hole, previewScores);
+    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, previewScores);
     const pointsEl = document.getElementById('hole-points');
     if (points) {
       pointsEl.innerHTML = sides
@@ -523,7 +367,7 @@ function renderHole() {
     }
 
     const netEagleRow = document.getElementById('net-eagle-row');
-    const awards = netEagleAwards(hole, previewScores);
+    const awards = netEagleAwards(match.format, sides, matchMinHandicap, hole, previewScores, netEagleType());
     if (awards.size) {
       const byPlayer = new Map(matchPlayersFlat.map((p) => [p.playerId, p]));
       const text = [...awards.entries()]
@@ -701,8 +545,8 @@ async function init() {
   }
   holes = holesData;
 
-  sides = buildSides(matchPlayers);
-  matchMinHandicap = Math.min(...sides.map((s) => s.handicap));
+  sides = buildSides(match.format, match.day, matchPlayers);
+  matchMinHandicap = computeMatchMinHandicap(sides);
   matchPlayersEl.textContent = sides.map((s) => s.label).join(' vs ');
   matchPlayersFlat = matchPlayers.map((mp) => ({
     playerId: mp.player_id,

@@ -74,7 +74,7 @@ function bonusLines(ctByName, day) {
   const pt = (n) => `${n} point${n === 1 ? '' : 's'}`;
 
   const lines = [];
-  const nearest = pts('Nearest the Pin');
+  const nearest = pts('Par3 Pin');
   if (nearest != null) lines.push(`Closest to the Pin on all Par 3's across both groups: ${pt(nearest)}`);
   const eagle = pts('Net Eagle');
   if (eagle != null) lines.push(`Net Eagle: ${pt(eagle)} (${day === 1 ? 'Adjusted' : 'Original'} HC)`);
@@ -82,10 +82,10 @@ function bonusLines(ctByName, day) {
   if (longPutt != null) lines.push(`Long Putt (20ft): ${pt(longPutt)}`);
   const chipIn = pts('Chip In');
   if (chipIn != null) lines.push(`Chip In: ${pt(chipIn)}`);
-  const driveGreen = pts('Drive the Green');
-  if (driveGreen != null) lines.push(`Drive the Green: ${pt(driveGreen)}`);
-  const clutch = pts('Clutch Shot');
-  if (clutch != null) lines.push(`Clutch Shot: ${pt(clutch)} (individual leaderboard only)`);
+  const driveGreen = pts('Green Drive');
+  if (driveGreen != null) lines.push(`Green Drive: ${pt(driveGreen)}`);
+  const clutch = pts('Clutch');
+  if (clutch != null) lines.push(`Clutch: ${pt(clutch)} (individual leaderboard only)`);
   if (day === 3) {
     const ballbag = pts('Ballbag');
     if (ballbag != null) lines.push(`Ballbag: ${pt(ballbag)}`);

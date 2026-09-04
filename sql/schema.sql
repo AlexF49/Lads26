@@ -270,11 +270,11 @@ create table competition_types (
 
 insert into competition_types (name, points, points_day1, points_day2, points_day3, applies_day, sort_order, counts_toward_bonus, is_automated) values
   ('Net Eagle', 2, 2, 2, 2, null, 1, true, true),
-  ('Nearest the Pin', 2, 2, 2, 2, null, 2, true, false),
+  ('Par3 Pin', 2, 2, 2, 2, null, 2, true, false),
   ('Long Putt', 3, 3, 3, 3, null, 3, true, false),
   ('Chip In', 3, 3, 3, 3, null, 4, true, false),
-  ('Drive the Green', 3, 3, 3, 3, null, 5, true, false),
-  ('Clutch Shot', 1, 1, 1, 1, null, 6, false, false),
+  ('Green Drive', 3, 3, 3, 3, null, 5, true, false),
+  ('Clutch', 1, 1, 1, 1, null, 6, false, false),
   ('Ballbag', 3, 3, 3, 3, 3, 7, true, false);
 
 create table competition_results (

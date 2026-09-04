@@ -583,14 +583,15 @@ function renderHole() {
 
     const netEagleRow = document.getElementById('net-eagle-row');
     const awards = netEagleAwards(match.format, sides, matchMinHandicap, hole, previewScores, netEagleType(), match.day);
+    const netEagleLabel = `🦅 Net Eagle <small>(auto, ${pointsForDay(netEagleType(), match.day)}pt)</small>`;
     if (awards.size) {
       const byPlayer = new Map(matchPlayersFlat.map((p) => [p.playerId, p]));
       const text = [...awards.entries()]
         .map(([playerId, pts]) => `${byPlayer.get(playerId)?.name ?? ''} +${pts}pt${pts === 1 ? '' : 's'}`)
         .join(' · ');
-      netEagleRow.innerHTML = `<span class="bonus-grid__label">🦅 Net Eagle <small>(auto)</small></span><span class="bonus-grid__auto-result">${text}</span>`;
+      netEagleRow.innerHTML = `<span class="bonus-grid__label">${netEagleLabel}</span><span class="bonus-grid__auto-result">${text}</span>`;
     } else {
-      netEagleRow.innerHTML = `<span class="bonus-grid__label">🦅 Net Eagle <small>(auto)</small></span><span class="bonus-grid__auto-result">—</span>`;
+      netEagleRow.innerHTML = `<span class="bonus-grid__label">${netEagleLabel}</span><span class="bonus-grid__auto-result">—</span>`;
     }
 
     return previewScores;

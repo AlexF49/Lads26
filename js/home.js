@@ -82,7 +82,7 @@ function renderTeamScores(teamTotals) {
     <div class="team-score-card" style="border-color:${t.color_hex}; color:${t.color_hex}">
       <div class="team-score-card__flag">${t.flag_emoji ?? ''}</div>
       <div class="team-score-card__name">${t.name}</div>
-      <div class="team-score-card__members">${t.roster.join(', ')}</div>
+      <div class="team-score-card__members">${t.roster.map((name) => `<span>${name}</span>`).join('')}</div>
       <div class="team-score-card__total">${t.total}</div>
       <div class="team-score-card__breakdown">
         <span>Matchplay ${t.matchplay}</span>

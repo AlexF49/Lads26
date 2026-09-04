@@ -186,6 +186,8 @@ body {
 }
 
 .team-score-card__members {
+  display: flex;
+  flex-direction: column;
   font-size: 0.65rem;
   color: var(--text-muted);
   line-height: 1.25;

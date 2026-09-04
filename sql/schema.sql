@@ -274,6 +274,7 @@ create table expenses (
   player_id uuid references players(id),
   description text not null,
   amount numeric(10, 2) not null,
+  currency text not null default 'EUR',
   created_at timestamptz default now()
 );
 

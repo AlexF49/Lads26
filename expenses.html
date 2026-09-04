@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Lads 2026</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛳</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="page">
+    <a href="home.html" class="back-link">&larr; Home</a>
+    <header class="header">
+      <h1 class="header__title">💷 Expenses</h1>
+    </header>
+
+    <p id="status" class="status"></p>
+
+    <div class="expenses-actions">
+      <button type="button" id="add-expense-btn" class="save-btn">+ Add Expense</button>
+      <button type="button" id="export-btn" class="export-btn">Export to Excel</button>
+    </div>
+
+    <div id="totals-row" class="expenses-totals"></div>
+
+    <div class="expenses-table-wrap">
+      <table class="expenses-table" id="expenses-table">
+        <thead>
+          <tr><th>Player</th><th>Item</th><th>Amount</th><th>Date</th></tr>
+        </thead>
+        <tbody id="expenses-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal">
+      <h2 class="modal__title">Add Expense</h2>
+      <form id="expense-form">
+        <label class="modal__label">
+          Player
+          <select id="field-player" required></select>
+        </label>
+        <label class="modal__label">
+          Item
+          <input type="text" id="field-item" placeholder="e.g. Drinks" required />
+        </label>
+        <div class="modal__row">
+          <label class="modal__label">
+            Currency
+            <select id="field-currency">
+              <option value="EUR">EUR €</option>
+              <option value="GBP">GBP £</option>
+              <option value="USD">USD $</option>
+            </select>
+          </label>
+          <label class="modal__label">
+            Amount
+            <input type="number" id="field-amount" step="0.01" min="0" inputmode="decimal" required />
+          </label>
+        </div>
+        <p id="modal-error" class="modal__error" hidden></p>
+        <div class="modal__actions">
+          <button type="button" id="cancel-btn" class="change-btn">Cancel</button>
+          <button type="submit" class="save-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/expenses.js"></script>
+</body>
+</html>

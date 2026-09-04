@@ -16,7 +16,13 @@
 
     <section id="team-scores" class="team-scores"></section>
 
-    <nav class="tiles" id="tiles"></nav>
+    <div class="lb-tabs">
+      <button type="button" class="lb-tab lb-tab--active" data-tab="match-centre">Match Centre</button>
+      <button type="button" class="lb-tab" data-tab="information">Information</button>
+    </div>
+
+    <nav class="tiles" id="tiles-match-centre"></nav>
+    <nav class="tiles" id="tiles-information" hidden></nav>
   </div>
 
   <script type="module" src="js/home.js"></script>

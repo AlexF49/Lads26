@@ -5,9 +5,11 @@ const STORAGE_KEY = 'lads26_player_id';
 
 const playingAsEl = document.getElementById('playing-as');
 const teamScoresEl = document.getElementById('team-scores');
-const tilesEl = document.getElementById('tiles');
+const matchCentreTilesEl = document.getElementById('tiles-match-centre');
+const informationTilesEl = document.getElementById('tiles-information');
 
-const COMING_SOON = [];
+const MATCH_CENTRE_COMING_SOON = [{ label: 'Rules', emoji: '📖' }];
+const INFORMATION_COMING_SOON = [{ label: 'Info', emoji: 'ℹ️' }];
 
 function tile({ href, emoji, label, subtitle, disabled }) {
   const el = document.createElement(href ? 'a' : 'div');
@@ -102,7 +104,7 @@ async function init() {
   const courseByDay = new Map((courses ?? []).map((c) => [c.day, c.name]));
 
   for (const day of [1, 2, 3]) {
-    tilesEl.appendChild(
+    matchCentreTilesEl.appendChild(
       tile({
         href: `matchday.html?day=${day}`,
         emoji: '⛳',
@@ -112,16 +114,29 @@ async function init() {
     );
   }
 
-  tilesEl.appendChild(tile({ href: 'leaderboard.html', emoji: '🏆', label: 'Leaderboard' }));
-  tilesEl.appendChild(tile({ href: 'bios.html', emoji: '🧑‍🤝‍🧑', label: 'Player Bios' }));
-  tilesEl.appendChild(tile({ href: 'history.html', emoji: '📜', label: 'History' }));
-  tilesEl.appendChild(tile({ href: 'expenses.html', emoji: '💷', label: 'Expenses' }));
-  tilesEl.appendChild(tile({ href: 'gallery.html', emoji: '📷', label: 'Gallery' }));
-  tilesEl.appendChild(tile({ href: 'admin.html', emoji: '🔧', label: 'Admin' }));
-
-  for (const { label, emoji } of COMING_SOON) {
-    tilesEl.appendChild(tile({ emoji, label, subtitle: 'Coming soon', disabled: true }));
+  matchCentreTilesEl.appendChild(tile({ href: 'leaderboard.html', emoji: '🏆', label: 'Leaderboard' }));
+  for (const { label, emoji } of MATCH_CENTRE_COMING_SOON) {
+    matchCentreTilesEl.appendChild(tile({ emoji, label, subtitle: 'Coming soon', disabled: true }));
   }
+
+  informationTilesEl.appendChild(tile({ href: 'bios.html', emoji: '🧑‍🤝‍🧑', label: 'Player Bios' }));
+  informationTilesEl.appendChild(tile({ href: 'history.html', emoji: '📜', label: 'History' }));
+  informationTilesEl.appendChild(tile({ href: 'expenses.html', emoji: '💷', label: 'Expenses' }));
+  informationTilesEl.appendChild(tile({ href: 'gallery.html', emoji: '📷', label: 'Gallery' }));
+  informationTilesEl.appendChild(tile({ href: 'admin.html', emoji: '🔧', label: 'Admin' }));
+  for (const { label, emoji } of INFORMATION_COMING_SOON) {
+    informationTilesEl.appendChild(tile({ emoji, label, subtitle: 'Coming soon', disabled: true }));
+  }
+
+  document.querySelectorAll('.lb-tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.lb-tab').forEach((b) => b.classList.remove('lb-tab--active'));
+      btn.classList.add('lb-tab--active');
+      const tab = btn.dataset.tab;
+      matchCentreTilesEl.hidden = tab !== 'match-centre';
+      informationTilesEl.hidden = tab !== 'information';
+    });
+  });
 
   const teamTotals = await loadEventData();
   if (teamTotals) renderTeamScores(teamTotals);

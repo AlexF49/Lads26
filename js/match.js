@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient.js';
-import { netScore, pairHandicap, twoWayPoints, threeWayPoints } from './scoring.js';
+import { netScore, pairHandicap, twoWayPoints, threeWayPoints, strokesReceived } from './scoring.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
@@ -22,6 +22,9 @@ function setStatus(message, isError = false) {
 let match; // { id, day, match_number, format }
 let holes; // [{ hole_number, par, stroke_index }]
 let sides; // format-specific participant description, see buildSides()
+// Lowest side/effective handicap in this match — match-play strokes are given off the
+// *difference* between competing handicaps, not each side's full individual allowance.
+let matchMinHandicap;
 let matchPlayersFlat; // [{ playerId, name, color }] — the 3 individuals in this match, any format
 let competitionTypes; // [{ id, name, points }]
 // Map<holeNumber, Map<playerId, grossStrokes>>
@@ -77,6 +80,10 @@ function buildSides(matchPlayers) {
         color: pair[0].players.teams.color_hex,
         teamName: pair[0].players.teams.name,
         flagEmoji: pair[0].players.teams.flag_emoji,
+        // Representative handicap for this side (used only to find the match's lowest
+        // handicap — min(min(a,b), c) === min(a,b,c), so this doesn't skew that). Actual
+        // scoring below always uses each member's own individual handicap.
+        handicap: Math.min(handicapForDay(pair[0].players), handicapForDay(pair[1].players)),
         members: pair.map((p) => ({
           playerId: p.player_id,
           label: p.players.name,
@@ -90,6 +97,7 @@ function buildSides(matchPlayers) {
         color: single.players.teams.color_hex,
         teamName: single.players.teams.name,
         flagEmoji: single.players.teams.flag_emoji,
+        handicap: handicapForDay(single.players),
         members: [{ playerId: single.player_id, label: single.players.name, handicap: handicapForDay(single.players) }],
         namesWithHandicap: [{ name: single.players.name, handicap: handicapForDay(single.players) }],
       },
@@ -138,6 +146,12 @@ function netLabel(net, par) {
   return `Net ${net} (${toPar > 0 ? '+' : ''}${toPar})`;
 }
 
+// Match-play strokes are given off the *difference* from the lowest handicap in this
+// match, not each side's full individual allowance — the lowest handicap plays scratch.
+function relativeHandicap(handicap) {
+  return handicap - matchMinHandicap;
+}
+
 function computeHolePoints(hole, holeScores) {
   // holeScores: Map<playerId, grossStrokes>. Returns Map<sideKey, points> or null if incomplete.
   if (match.format === 'greensomes') {
@@ -145,8 +159,8 @@ function computeHolePoints(hole, holeScores) {
     const pairGross = holeScores.get(pairSide.playerIds[0]);
     const singleGross = holeScores.get(singleSide.playerIds[0]);
     if (pairGross == null || singleGross == null) return null;
-    const netPair = netScore(pairGross, pairSide.handicap, hole.stroke_index);
-    const netSingle = netScore(singleGross, singleSide.handicap, hole.stroke_index);
+    const netPair = netScore(pairGross, relativeHandicap(pairSide.handicap), hole.stroke_index);
+    const netSingle = netScore(singleGross, relativeHandicap(singleSide.handicap), hole.stroke_index);
     const [p1, p2] = twoWayPoints(netPair, netSingle);
     return new Map([
       ['pair', p1],
@@ -159,10 +173,10 @@ function computeHolePoints(hole, holeScores) {
     const pairNets = pairSide.members.map((m) => holeScores.get(m.playerId));
     const singleGross = holeScores.get(singleSide.members[0].playerId);
     if (pairNets.some((v) => v == null) || singleGross == null) return null;
-    const netA = netScore(pairNets[0], pairSide.members[0].handicap, hole.stroke_index);
-    const netB = netScore(pairNets[1], pairSide.members[1].handicap, hole.stroke_index);
+    const netA = netScore(pairNets[0], relativeHandicap(pairSide.members[0].handicap), hole.stroke_index);
+    const netB = netScore(pairNets[1], relativeHandicap(pairSide.members[1].handicap), hole.stroke_index);
     const bestPairNet = Math.min(netA, netB);
-    const netSingle = netScore(singleGross, singleSide.members[0].handicap, hole.stroke_index);
+    const netSingle = netScore(singleGross, relativeHandicap(singleSide.members[0].handicap), hole.stroke_index);
     const [p1, p2] = twoWayPoints(bestPairNet, netSingle);
     return new Map([
       ['pair', p1],
@@ -173,11 +187,20 @@ function computeHolePoints(hole, holeScores) {
   // singles
   const nets = sides.map((s) => {
     const gross = holeScores.get(s.playerIds[0]);
-    return gross == null ? null : netScore(gross, s.handicap, hole.stroke_index);
+    return gross == null ? null : netScore(gross, relativeHandicap(s.handicap), hole.stroke_index);
   });
   if (nets.some((v) => v == null)) return null;
   const pts = threeWayPoints(...nets);
   return new Map(sides.map((s, i) => [s.key, pts[i]]));
+}
+
+// The side (if any) that receives an extra match-play stroke on this hole, based purely
+// on handicaps and stroke index — independent of whether the hole has been scored yet.
+function sideStrokeAdvantage(hole) {
+  const withExtra = sides
+    .map((s) => ({ side: s, extra: strokesReceived(relativeHandicap(s.handicap), hole.stroke_index) }))
+    .filter((x) => x.extra > 0);
+  return withExtra.length === 1 ? withExtra[0].side : null;
 }
 
 function bonusPointsByPlayer() {
@@ -255,10 +278,12 @@ function renderHoleSummary() {
       }
     }
 
+    const advantageSide = sideStrokeAdvantage(hole);
+    const numStyle = advantageSide ? ` style="color:${advantageSide.color};font-weight:800"` : '';
     const activeClass = hole.hole_number === currentHole ? ' hole-summary__cell--active' : '';
     return `
       <button type="button" class="hole-summary__cell${activeClass}" data-hole="${hole.hole_number}">
-        <span class="hole-summary__num">${hole.hole_number}</span>
+        <span class="hole-summary__num"${numStyle}>${hole.hole_number}</span>
         ${valueHtml}
       </button>
     `;
@@ -416,7 +441,7 @@ function renderHole() {
     if (match.format === 'greensomes' || match.format === 'singles') {
       sides.forEach((s) => {
         const gross = previewScores.get(s.playerIds[0]);
-        const net = netScore(gross, s.handicap, hole.stroke_index);
+        const net = netScore(gross, relativeHandicap(s.handicap), hole.stroke_index);
         const el = holeCardEl.querySelector(`[data-net="${s.key === 'pair' || s.key === 'single' ? s.key : s.playerIds[0]}"]`);
         if (el) el.textContent = netLabel(net, hole.par);
       });
@@ -424,13 +449,13 @@ function renderHole() {
       const [pairSide, singleSide] = sides;
       pairSide.members.forEach((m) => {
         const gross = previewScores.get(m.playerId);
-        const net = netScore(gross, m.handicap, hole.stroke_index);
+        const net = netScore(gross, relativeHandicap(m.handicap), hole.stroke_index);
         const el = holeCardEl.querySelector(`[data-net="${m.playerId}"]`);
         if (el) el.textContent = netLabel(net, hole.par);
       });
       const sm = singleSide.members[0];
       const gross = previewScores.get(sm.playerId);
-      const net = netScore(gross, sm.handicap, hole.stroke_index);
+      const net = netScore(gross, relativeHandicap(sm.handicap), hole.stroke_index);
       const el = holeCardEl.querySelector(`[data-net="${sm.playerId}"]`);
       if (el) el.textContent = netLabel(net, hole.par);
     }
@@ -611,6 +636,7 @@ async function init() {
   holes = holesData;
 
   sides = buildSides(matchPlayers);
+  matchMinHandicap = Math.min(...sides.map((s) => s.handicap));
   matchPlayersEl.textContent = sides.map((s) => s.label).join(' vs ');
   matchPlayersFlat = matchPlayers.map((mp) => ({
     playerId: mp.player_id,

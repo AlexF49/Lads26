@@ -11,7 +11,6 @@ const COMING_SOON = [
   { label: 'Admin', emoji: '🔧' },
   { label: 'Gallery', emoji: '📷' },
   { label: 'Expenses', emoji: '💷' },
-  { label: 'History', emoji: '📜' },
 ];
 
 function tile({ href, emoji, label, subtitle, disabled }) {
@@ -119,6 +118,7 @@ async function init() {
 
   tilesEl.appendChild(tile({ href: 'leaderboard.html', emoji: '🏆', label: 'Leaderboard' }));
   tilesEl.appendChild(tile({ href: 'bios.html', emoji: '🧑‍🤝‍🧑', label: 'Player Bios' }));
+  tilesEl.appendChild(tile({ href: 'history.html', emoji: '📜', label: 'History' }));
 
   for (const { label, emoji } of COMING_SOON) {
     tilesEl.appendChild(tile({ emoji, label, subtitle: 'Coming soon', disabled: true }));

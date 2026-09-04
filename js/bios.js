@@ -12,6 +12,19 @@ function setStatus(message, isError = false) {
   statusEl.classList.toggle('status--error', isError);
 }
 
+// Seeding order from Lads 2026.xlsx, Setup tab (Seed 1/2/3 columns per team).
+const SEED_ORDER = [
+  'Nick Bourne',
+  'Ben Brown',
+  'James Pilling',
+  'James Kibbey',
+  'Alan Forrest',
+  'Alex Robinson',
+  'Paul Cooper',
+  'Andrew Conway',
+  'Jamie March',
+];
+
 function initials(name) {
   return name
     .split(' ')
@@ -29,6 +42,7 @@ function avatarHtml(player, color) {
 }
 
 function renderBioCard(player, team) {
+  const affiliations = player.stats?.teams;
   bioCardEl.hidden = false;
   bioCardEl.style.borderColor = team.color_hex;
   bioCardEl.innerHTML = `
@@ -39,6 +53,7 @@ function renderBioCard(player, team) {
         <p class="bio-card__team">${team.flag_emoji ?? ''} ${team.name}</p>
       </div>
     </div>
+    ${affiliations ? `<p class="bio-card__affiliations">${affiliations}</p>` : ''}
     <p class="bio-card__bio">${player.bio ?? 'Bio coming soon.'}</p>
   `;
   bioCardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -75,7 +90,7 @@ async function init() {
 
   const [{ data: teams, error: teamsError }, { data: players, error: playersError }] = await Promise.all([
     supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
-    supabase.from('players').select('id, name, team_id, bio, photo_url').order('name'),
+    supabase.from('players').select('id, name, team_id, bio, photo_url, stats'),
   ]);
 
   if (teamsError || playersError || !teams || !players) {
@@ -85,7 +100,8 @@ async function init() {
 
   setStatus('');
 
-  const playersByTeam = new Map(teams.map((t) => [t.id, players.filter((p) => p.team_id === t.id)]));
+  const bySeed = (a, b) => SEED_ORDER.indexOf(a.name) - SEED_ORDER.indexOf(b.name);
+  const playersByTeam = new Map(teams.map((t) => [t.id, players.filter((p) => p.team_id === t.id).sort(bySeed)]));
 
   function selectTeam(team) {
     teamTabsEl.querySelectorAll('.lb-tab').forEach((b) => b.classList.remove('lb-tab--active'));

@@ -21,9 +21,11 @@ export function teeTimeForMatch(day, matchNumber) {
   const start = TEE_OFF_START[day];
   if (!start || !matchNumber) return '';
   const totalMinutes = start.hour * 60 + start.minute + (matchNumber - 1) * TEE_GAP_MINUTES;
-  const hour = Math.floor(totalMinutes / 60) % 24;
+  const hour24 = Math.floor(totalMinutes / 60) % 24;
   const minute = totalMinutes % 60;
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  const period = hour24 < 12 ? 'am' : 'pm';
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${String(minute).padStart(2, '0')}${period}`;
 }
 
 // matchPlayers: rows from match_players joined with players(..., teams(...)).

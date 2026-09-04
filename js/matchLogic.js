@@ -127,6 +127,14 @@ function holeMultiplier(hole) {
   return hole.hole_number === 18 ? 2 : 1;
 }
 
+// Total points pool for one hole, ignoring who wins it — 2/4 for 2-way (Greensomes/
+// Betterball), 3/6 for 3-way (Singles), doubled on hole 18. Used by the win predictor to
+// work out how many points are still up for grabs without needing a full points split.
+export function holePoolSize(format, hole) {
+  const base = format === 'singles' ? 3 : 2;
+  return base * holeMultiplier(hole);
+}
+
 // Betterball's per-player net scores for a hole, or null if any of the 3 is missing.
 function betterballNets(sides, matchMinHandicap, hole, holeScores) {
   const [pairSide, singleSide] = sides;
@@ -317,6 +325,7 @@ export function aggregateEvent({
     }
 
     let holesPlayed = 0;
+    const remainingHoles = [];
 
     for (const hole of holesForDay.values()) {
       const holeScores = scoresForMatch.get(hole.hole_number) ?? new Map();
@@ -333,6 +342,8 @@ export function aggregateEvent({
           }
           if (teamTotalsMap.has(side.teamId)) teamTotalsMap.get(side.teamId).matchplay += pts;
         }
+      } else {
+        remainingHoles.push({ hole: hole.hole_number, pool: holePoolSize(match.format, hole) });
       }
 
       const eagleAwards = netEagleAwards(match.format, sides, matchMinHandicap, hole, holeScores, netEagleType, match.day);
@@ -355,6 +366,7 @@ export function aggregateEvent({
       setUp: true,
       complete: holesPlayed === 18,
       holesPlayed,
+      remainingHoles,
       sides,
       sidePoints,
       sideBonus,
@@ -399,6 +411,7 @@ export function aggregateEvent({
           setUp: true,
           complete: m.complete,
           holesPlayed: m.holesPlayed,
+          remainingHoles: m.remainingHoles,
           sides: m.sides.map((s) => ({
             key: s.key,
             label: s.label,

@@ -225,6 +225,20 @@ create table drives (
   unique(match_id, hole)
 );
 
+-- Win predictor history (see js/predictor.js) — one row per team logged after every hole
+-- save, so the leaderboard can plot a "worm diagram" of win probability over the event.
+-- holes_completed (0-162) is the x-axis: total holes scored across every match so far,
+-- used instead of wall-clock time so gaps between play sessions don't flatten the chart.
+create table prediction_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  holes_completed integer not null,
+  team_id text references teams(id),
+  win_probability numeric not null,
+  projected_points numeric not null,
+  current_points numeric not null,
+  created_at timestamptz default now()
+);
+
 -- Hazards (optional — for tracking OOB, water, etc.)
 create table hazards (
   id uuid primary key default gen_random_uuid(),
@@ -335,6 +349,7 @@ alter table match_players enable row level security;
 alter table scores enable row level security;
 alter table hammers enable row level security;
 alter table drives enable row level security;
+alter table prediction_snapshots enable row level security;
 alter table hazards enable row level security;
 alter table competition_types enable row level security;
 alter table competition_results enable row level security;
@@ -352,6 +367,7 @@ create policy "public read" on match_players for select using (true);
 create policy "public read" on scores for select using (true);
 create policy "public read" on hammers for select using (true);
 create policy "public read" on drives for select using (true);
+create policy "public read" on prediction_snapshots for select using (true);
 create policy "public read" on hazards for select using (true);
 create policy "public read" on competition_types for select using (true);
 create policy "public read" on competition_results for select using (true);
@@ -371,6 +387,8 @@ create policy "public write delete" on hammers for delete using (true);
 create policy "public write insert" on drives for insert with check (true);
 create policy "public write update" on drives for update using (true);
 create policy "public write delete" on drives for delete using (true);
+create policy "public write insert" on prediction_snapshots for insert with check (true);
+create policy "public write delete" on prediction_snapshots for delete using (true);
 create policy "public write" on hazards for insert with check (true);
 create policy "public write insert" on competition_results for insert with check (true);
 create policy "public write update" on competition_results for update using (true);
@@ -390,5 +408,6 @@ create policy "public write update" on competition_types for update using (true)
 alter publication supabase_realtime add table scores;
 alter publication supabase_realtime add table hammers;
 alter publication supabase_realtime add table drives;
+alter publication supabase_realtime add table prediction_snapshots;
 alter publication supabase_realtime add table competition_results;
 alter publication supabase_realtime add table match_players;

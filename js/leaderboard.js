@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient.js';
 import { aggregateEvent } from './matchLogic.js';
+import { buildPrediction } from './predictor.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
@@ -7,6 +8,7 @@ const statusEl = document.getElementById('status');
 const updatedAtEl = document.getElementById('updated-at');
 const teamTabEl = document.getElementById('team-tab');
 const individualTabEl = document.getElementById('individual-tab');
+const predictorTabEl = document.getElementById('predictor-tab');
 
 const FORMAT_LABEL = { greensomes: 'Greensomes', betterball: 'Betterball', singles: 'Singles' };
 
@@ -115,6 +117,65 @@ function renderIndividualTab(playerTotals) {
   `;
 }
 
+// Hand-rolled SVG line chart (no charting library) plotting each team's win probability
+// against total holes completed across the event — the "worm diagram" of swinging fortunes.
+function wormChartSvg(history, teamTotals) {
+  const teamsById = new Map(teamTotals.map((t) => [t.id, t]));
+  const byTeam = new Map();
+  for (const row of history) {
+    if (!byTeam.has(row.team_id)) byTeam.set(row.team_id, []);
+    byTeam.get(row.team_id).push(row);
+  }
+
+  const W = 320;
+  const H = 160;
+  const PAD = 10;
+  const maxHoles = Math.max(1, ...history.map((r) => r.holes_completed));
+  const x = (h) => PAD + (h / maxHoles) * (W - 2 * PAD);
+  const y = (p) => PAD + (1 - p) * (H - 2 * PAD);
+
+  const lines = [...byTeam.entries()]
+    .map(([teamId, rows]) => {
+      const team = teamsById.get(teamId);
+      const sorted = [...rows].sort((a, b) => a.holes_completed - b.holes_completed);
+      const points = sorted.map((r) => `${x(r.holes_completed).toFixed(1)},${y(r.win_probability).toFixed(1)}`).join(' ');
+      return `<polyline points="${points}" fill="none" stroke="${team?.color_hex ?? '#999'}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />`;
+    })
+    .join('');
+
+  return `
+    <svg viewBox="0 0 ${W} ${H}" class="worm-chart">
+      <line x1="${PAD}" y1="${y(0.5).toFixed(1)}" x2="${W - PAD}" y2="${y(0.5).toFixed(1)}" class="worm-chart__midline" />
+      ${lines}
+    </svg>
+  `;
+}
+
+function renderPredictorTab(teamTotals, predictions, history) {
+  const teamsById = new Map(teamTotals.map((t) => [t.id, t]));
+  const ranked = [...predictions].sort((a, b) => b.winProbability - a.winProbability);
+
+  predictorTabEl.innerHTML = `
+    <div class="predictor-current">
+      ${ranked
+        .map((p) => {
+          const team = teamsById.get(p.teamId);
+          return `
+          <div class="predictor-team" style="color:${team?.color_hex}">
+            <span class="predictor-team__flag">${team?.flag_emoji ?? ''}</span>
+            <span class="predictor-team__name">${team?.name ?? ''}</span>
+            <strong class="predictor-team__pct">${Math.round(p.winProbability * 100)}%</strong>
+            <span class="predictor-team__proj">proj. ${p.projectedPoints.toFixed(1)} pts</span>
+          </div>`;
+        })
+        .join('')}
+    </div>
+    <h3 class="lb-day-heading">Win probability over the event</h3>
+    ${history.length ? wormChartSvg(history, teamTotals) : '<p class="predictor-empty">No holes scored yet.</p>'}
+    <p class="predictor-note">Matchplay points only — bonus points are excluded since they're variable.</p>
+  `;
+}
+
 async function loadAndRender() {
   const [
     { data: teams },
@@ -127,6 +188,7 @@ async function loadAndRender() {
     { data: competitionTypes },
     { data: competitionResults },
     { data: hammers },
+    { data: predictionHistory },
   ] = await Promise.all([
     supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
     supabase.from('players').select('id, name, team_id').order('name'),
@@ -142,6 +204,7 @@ async function loadAndRender() {
     supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated'),
     supabase.from('competition_results').select('day, winner_id, competition_type_id'),
     supabase.from('hammers').select('match_id, hole, side'),
+    supabase.from('prediction_snapshots').select('holes_completed, team_id, win_probability').order('holes_completed'),
   ]);
 
   if (!teams || !players || !matches) {
@@ -164,9 +227,12 @@ async function loadAndRender() {
     hammers: hammers ?? [],
   });
 
+  const predictions = buildPrediction({ teamTotals, perMatch });
+
   setStatus('');
   renderTeamTab(teamTotals, perMatch, courseByDay);
   renderIndividualTab(playerTotals);
+  renderPredictorTab(teamTotals, predictions, predictionHistory ?? []);
   updatedAtEl.textContent = `Live · updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }
 
@@ -178,6 +244,7 @@ function wireTabs() {
       const tab = btn.dataset.tab;
       teamTabEl.hidden = tab !== 'team';
       individualTabEl.hidden = tab !== 'individual';
+      predictorTabEl.hidden = tab !== 'predictor';
     });
   });
 }
@@ -189,6 +256,7 @@ function watchForChanges() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'competition_results' }, loadAndRender)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players' }, loadAndRender)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'hammers' }, loadAndRender)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'prediction_snapshots' }, loadAndRender)
     .subscribe();
 }
 

@@ -9,7 +9,9 @@ import {
   teeTimeForMatch,
   pointsForDay,
   betterballHammerSuccess,
+  aggregateEvent,
 } from './matchLogic.js';
+import { buildPrediction, totalHolesCompleted } from './predictor.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
@@ -82,6 +84,65 @@ function wireStepper(container, id, min, max, onChange) {
     valueEl.textContent = value;
     onChange(value);
   });
+}
+
+// Fire-and-forget: recompute the win predictor across the whole event and log one row per
+// team, so the leaderboard's worm diagram has a new point after every hole saved anywhere.
+// Best-effort — a failure here should never block or error out the actual hole save.
+async function logPredictionSnapshot() {
+  try {
+    const [
+      { data: teams },
+      { data: matchesAll },
+      { data: matchPlayersAll },
+      { data: scoresAll },
+      { data: courses },
+      { data: holesAll },
+      { data: hammersAll },
+    ] = await Promise.all([
+      supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
+      supabase.from('matches').select('id, day, match_number, format'),
+      supabase
+        .from('match_players')
+        .select(
+          'match_id, player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )'
+        ),
+      supabase.from('scores').select('match_id, day, hole, player_id, gross_strokes'),
+      supabase.from('courses').select('id, day'),
+      supabase.from('holes').select('course_id, hole_number, par, stroke_index'),
+      supabase.from('hammers').select('match_id, hole, side'),
+    ]);
+
+    if (!teams || !matchesAll) return;
+
+    const { teamTotals, perMatch } = aggregateEvent({
+      teams,
+      players: [],
+      matches: matchesAll,
+      matchPlayers: matchPlayersAll ?? [],
+      scores: scoresAll ?? [],
+      courses: courses ?? [],
+      holes: holesAll ?? [],
+      competitionTypes: [],
+      competitionResults: [],
+      hammers: hammersAll ?? [],
+    });
+
+    const predictions = buildPrediction({ teamTotals, perMatch });
+    const holesCompleted = totalHolesCompleted(perMatch);
+
+    await supabase.from('prediction_snapshots').insert(
+      predictions.map((p) => ({
+        holes_completed: holesCompleted,
+        team_id: p.teamId,
+        win_probability: p.winProbability,
+        projected_points: p.projectedPoints,
+        current_points: p.currentPoints,
+      }))
+    );
+  } catch (err) {
+    console.error('Could not log prediction snapshot', err);
+  }
 }
 
 function netLabel(net, par) {
@@ -674,6 +735,7 @@ function renderHole() {
 
     setStatus('Saved ✓');
     renderTotals();
+    logPredictionSnapshot();
 
     if (currentHole < 18) {
       currentHole += 1;

@@ -10,6 +10,7 @@ import {
   pointsForDay,
   betterballHammerSuccess,
   aggregateEvent,
+  lastHoleForCourse,
 } from './matchLogic.js';
 import { buildPrediction, totalHolesCompleted } from './predictor.js';
 
@@ -33,6 +34,7 @@ function setStatus(message, isError = false) {
 
 let match; // { id, day, match_number, format }
 let holes; // [{ hole_number, par, stroke_index }]
+let lastHole = 18; // this day's actual last hole — 9 instead of 18 for a #10 shotgun start
 let sides; // format-specific participant description, see buildSides()
 // Lowest side/effective handicap in this match — match-play strokes are given off the
 // *difference* between competing handicaps, not each side's full individual allowance.
@@ -111,7 +113,7 @@ async function logPredictionSnapshot() {
           'match_id, player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )'
         ),
       supabase.from('scores').select('match_id, day, hole, player_id, gross_strokes'),
-      supabase.from('courses').select('id, day'),
+      supabase.from('courses').select('id, day, start_hole'),
       supabase.from('holes').select('course_id, hole_number, par, stroke_index'),
       supabase.from('hammers').select('match_id, hole, side'),
     ]);
@@ -245,7 +247,7 @@ function renderTotals() {
   const running = new Map(sides.map((s) => [s.key, 0]));
   for (const hole of holes) {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
-    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores, hammersByHole.get(hole.hole_number));
+    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores, hammersByHole.get(hole.hole_number), lastHole);
     if (!points) continue;
     for (const [key, pts] of points) {
       running.set(key, running.get(key) + pts);
@@ -341,7 +343,7 @@ function singlesCircleHtml(points) {
 function renderHoleSummary() {
   const cells = holes.map((hole) => {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
-    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores, hammersByHole.get(hole.hole_number));
+    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores, hammersByHole.get(hole.hole_number), lastHole);
 
     let valueHtml = '<span class="hole-summary__value hole-summary__value--empty">–</span>';
     if (points && match.format === 'singles') {
@@ -568,7 +570,7 @@ function renderHole() {
     const calledHammers = new Set(
       [...holeCardEl.querySelectorAll('[data-hammer]:checked')].map((el) => el.dataset.hammer)
     );
-    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, previewScores, calledHammers);
+    const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, previewScores, calledHammers, lastHole);
     const pointsEl = document.getElementById('hole-points');
     if (points) {
       pointsEl.innerHTML = sides
@@ -793,7 +795,7 @@ async function init() {
       .from('match_players')
       .select('player_id, side, players ( name, nickname, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )')
       .eq('match_id', matchId),
-    supabase.from('courses').select('id').eq('day', match.day).single(),
+    supabase.from('courses').select('id, start_hole').eq('day', match.day).single(),
     supabase.from('scores').select('player_id, hole, gross_strokes').eq('match_id', matchId),
     supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, applies_day, counts_toward_bonus, is_automated').order('sort_order'),
     supabase.from('competition_results').select('hole, competition_type_id, winner_id').eq('day', match.day),
@@ -827,6 +829,7 @@ async function init() {
     return;
   }
   holes = holesData;
+  lastHole = lastHoleForCourse(course.start_hole ?? 1);
 
   sides = buildSides(match.format, match.day, matchPlayers);
   matchMinHandicap = computeMatchMinHandicap(sides);

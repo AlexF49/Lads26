@@ -62,7 +62,10 @@ create table courses (
   id uuid primary key default gen_random_uuid(),
   day integer not null unique,      -- 1, 2 or 3 — this event plays one course per day
   name text not null,
-  par_total integer not null
+  par_total integer not null,
+  start_hole integer not null default 1  -- 1 (normal) or 10 (shotgun start off the back 9) —
+                                          -- when 10, hole 9 is the actual last hole played that
+                                          -- day, so double-points-on-last-hole shifts to hole 9
 );
 
 create table holes (
@@ -401,9 +404,11 @@ create policy "public write" on corrections for insert with check (true);
 create policy "public write" on expenses for insert with check (true);
 create policy "public write" on photos for insert with check (true);
 
--- Admin page: editing player team/handicaps and per-day bonus points.
+-- Admin page: editing player team/handicaps, per-day bonus points, and each
+-- course's start hole.
 create policy "public write update" on players for update using (true);
 create policy "public write update" on competition_types for update using (true);
+create policy "public write update" on courses for update using (true);
 
 -- ============================================================================
 -- Realtime — the leaderboard subscribes to these so it re-sorts live as scores

@@ -46,7 +46,7 @@ async function loadEventData() {
         'match_id, player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )'
       ),
     supabase.from('scores').select('match_id, day, hole, player_id, gross_strokes'),
-    supabase.from('courses').select('id, day'),
+    supabase.from('courses').select('id, day, start_hole'),
     supabase.from('holes').select('course_id, hole_number, par, stroke_index'),
     supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated'),
     supabase.from('competition_results').select('day, winner_id, competition_type_id'),

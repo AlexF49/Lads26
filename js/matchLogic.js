@@ -124,17 +124,25 @@ export function relativeHandicap(handicap, matchMinHandicap) {
   return handicap - matchMinHandicap;
 }
 
-// Hole 18 is worth double points in every format.
-function holeMultiplier(hole) {
-  return hole.hole_number === 18 ? 2 : 1;
+// The actual last hole played that day is worth double points. Normally that's hole 18,
+// but a shotgun start off #10 means the round runs 10-18 then 1-9, so hole 9 is really
+// last — see courses.start_hole, set from the admin page.
+function holeMultiplier(hole, lastHole = 18) {
+  return hole.hole_number === lastHole ? 2 : 1;
 }
 
 // Total points pool for one hole, ignoring who wins it — 2/4 for 2-way (Greensomes/
-// Betterball), 3/6 for 3-way (Singles), doubled on hole 18. Used by the win predictor to
-// work out how many points are still up for grabs without needing a full points split.
-export function holePoolSize(format, hole) {
+// Betterball), 3/6 for 3-way (Singles), doubled on the day's last hole. Used by the win
+// predictor to work out how many points are still up for grabs without needing a full
+// points split.
+export function holePoolSize(format, hole, lastHole = 18) {
   const base = format === 'singles' ? 3 : 2;
-  return base * holeMultiplier(hole);
+  return base * holeMultiplier(hole, lastHole);
+}
+
+// courses.start_hole (1 or 10) -> the actual last hole played that day.
+export function lastHoleForCourse(startHole) {
+  return startHole === 10 ? 9 : 18;
 }
 
 // Betterball's per-player net scores for a hole, or null if any of the 3 is missing.
@@ -166,9 +174,11 @@ export function betterballHammerSuccess(sides, matchMinHandicap, hole, holeScore
 }
 
 // holeScores: Map<playerId, grossStrokes>. hammerSideKeys: Set of side keys ('pair'/'single')
-// that called a Hammer this hole (Betterball only). Returns Map<sideKey, points> or null if incomplete.
-export function computeHolePoints(format, sides, matchMinHandicap, hole, holeScores, hammerSideKeys = new Set()) {
-  const mult = holeMultiplier(hole);
+// that called a Hammer this hole (Betterball only). lastHole: that day's actual last hole
+// (18 normally, 9 for a #10 shotgun start — see lastHoleForCourse). Returns Map<sideKey,
+// points> or null if incomplete.
+export function computeHolePoints(format, sides, matchMinHandicap, hole, holeScores, hammerSideKeys = new Set(), lastHole = 18) {
+  const mult = holeMultiplier(hole, lastHole);
 
   if (format === 'greensomes') {
     const [pairSide, singleSide] = sides;
@@ -262,8 +272,10 @@ export function aggregateEvent({
   hammers = [],
 }) {
   const holesByDay = new Map();
+  const lastHoleByDay = new Map();
   for (const course of courses) {
     holesByDay.set(course.day, new Map(holes.filter((h) => h.course_id === course.id).map((h) => [h.hole_number, h])));
+    lastHoleByDay.set(course.day, lastHoleForCourse(course.start_hole ?? 1));
   }
 
   const matchPlayersByMatch = new Map();
@@ -317,6 +329,7 @@ export function aggregateEvent({
     const holesForDay = holesByDay.get(match.day) ?? new Map();
     const scoresForMatch = scoresByMatch.get(match.id) ?? new Map();
     const hammersForMatch = hammersByMatch.get(match.id) ?? new Map();
+    const lastHole = lastHoleByDay.get(match.day) ?? 18;
 
     const sidePoints = new Map(sides.map((s) => [s.key, 0]));
     const sideBonus = new Map(sides.map((s) => [s.key, 0]));
@@ -331,7 +344,7 @@ export function aggregateEvent({
 
     for (const hole of holesForDay.values()) {
       const holeScores = scoresForMatch.get(hole.hole_number) ?? new Map();
-      const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores, hammersForMatch.get(hole.hole_number));
+      const points = computeHolePoints(match.format, sides, matchMinHandicap, hole, holeScores, hammersForMatch.get(hole.hole_number), lastHole);
       if (points) {
         holesPlayed += 1;
         for (const [key, pts] of points) {
@@ -345,7 +358,7 @@ export function aggregateEvent({
           if (teamTotalsMap.has(side.teamId)) teamTotalsMap.get(side.teamId).matchplay += pts;
         }
       } else {
-        remainingHoles.push({ hole: hole.hole_number, pool: holePoolSize(match.format, hole) });
+        remainingHoles.push({ hole: hole.hole_number, pool: holePoolSize(match.format, hole, lastHole) });
       }
 
       const eagleAwards = netEagleAwards(match.format, sides, matchMinHandicap, hole, holeScores, netEagleType, match.day);

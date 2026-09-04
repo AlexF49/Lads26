@@ -4,6 +4,7 @@ const STORAGE_KEY = 'lads26_player_id';
 
 const statusEl = document.getElementById('status');
 const playersBodyEl = document.getElementById('players-body');
+const coursesBodyEl = document.getElementById('courses-body');
 const bonusBodyEl = document.getElementById('bonus-body');
 
 function setStatus(message, isError = false) {
@@ -40,6 +41,39 @@ function renderPlayers(players, teams) {
       const value = el.type === 'number' ? (el.value === '' ? null : parseInt(el.value, 10)) : el.value;
 
       const { error } = await supabase.from('players').update({ [field]: value }).eq('id', playerId);
+      if (error) {
+        setStatus(`Could not save: ${error.message}`, true);
+        return;
+      }
+      setStatus('Saved ✓');
+    });
+  });
+}
+
+function renderCourses(courses) {
+  coursesBodyEl.innerHTML = courses
+    .map(
+      (c) => `
+    <tr data-course-id="${c.id}">
+      <td>${c.name}</td>
+      <td>
+        <select class="admin-select" data-field="start_hole">
+          <option value="1" ${c.start_hole === 1 ? 'selected' : ''}>Started on #1</option>
+          <option value="10" ${c.start_hole === 10 ? 'selected' : ''}>Started on #10</option>
+        </select>
+      </td>
+    </tr>`
+    )
+    .join('');
+
+  coursesBodyEl.querySelectorAll('[data-field]').forEach((el) => {
+    el.addEventListener('change', async () => {
+      const row = el.closest('[data-course-id]');
+      const courseId = row.dataset.courseId;
+      const field = el.dataset.field;
+      const value = parseInt(el.value, 10);
+
+      const { error } = await supabase.from('courses').update({ [field]: value }).eq('id', courseId);
       if (error) {
         setStatus(`Could not save: ${error.message}`, true);
         return;
@@ -87,23 +121,29 @@ async function init() {
 
   setStatus('Loading…');
 
-  const [{ data: teams, error: teamsError }, { data: players, error: playersError }, { data: types, error: typesError }] =
-    await Promise.all([
-      supabase.from('teams').select('id, name').order('id'),
-      supabase.from('players').select('id, name, nickname, team_id, seed, handicap, handicap_day1, handicap_day2, handicap_day3').order('name'),
-      supabase
-        .from('competition_types')
-        .select('id, name, points, points_day1, points_day2, points_day3, sort_order')
-        .order('sort_order'),
-    ]);
+  const [
+    { data: teams, error: teamsError },
+    { data: players, error: playersError },
+    { data: courses, error: coursesError },
+    { data: types, error: typesError },
+  ] = await Promise.all([
+    supabase.from('teams').select('id, name').order('id'),
+    supabase.from('players').select('id, name, nickname, team_id, seed, handicap, handicap_day1, handicap_day2, handicap_day3').order('name'),
+    supabase.from('courses').select('id, name, day, start_hole').order('day'),
+    supabase
+      .from('competition_types')
+      .select('id, name, points, points_day1, points_day2, points_day3, sort_order')
+      .order('sort_order'),
+  ]);
 
-  if (teamsError || playersError || typesError) {
-    setStatus(`Could not load admin data: ${(teamsError || playersError || typesError).message}`, true);
+  if (teamsError || playersError || coursesError || typesError) {
+    setStatus(`Could not load admin data: ${(teamsError || playersError || coursesError || typesError).message}`, true);
     return;
   }
 
   setStatus('');
   renderPlayers(players ?? [], teams ?? []);
+  renderCourses(courses ?? []);
   renderBonusTypes(types ?? []);
 }
 

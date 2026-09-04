@@ -178,7 +178,15 @@ function renderTotals() {
             <div class="totals__hammer-slot">${i === 1 ? hammers : ''}</div>
           </div>
           <div class="totals__names">
-            ${s.namesWithHandicap.map((n) => `<span>${n.name} (${n.handicap})</span>`).join('')}
+            ${s.namesWithHandicap
+              .map((n, idx) => {
+                const dots =
+                  match.format === 'greensomes' && s.key === 'pair'
+                    ? driveDotsHtml(driversRemaining(s.playerIds[idx]))
+                    : '';
+                return `<span>${dots}${n.name} (${n.handicap})</span>`;
+              })
+              .join('')}
           </div>
         </div>`;
         })
@@ -298,9 +306,8 @@ function renderHole() {
       .map(
         (p) => `
       <label class="driver-row">
-        ${driveDotsHtml(driversRemaining(p.id))}
-        <input type="radio" name="driver" value="${p.id}" data-driver ${driverForHole === p.id ? 'checked' : ''} />
         <span class="driver-row__name">${p.name}</span>
+        <input type="radio" name="driver" value="${p.id}" data-driver ${driverForHole === p.id ? 'checked' : ''} />
       </label>`
       )
       .join('');

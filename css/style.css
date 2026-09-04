@@ -260,49 +260,81 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
-.lb-match__title {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 700;
-  font-size: 0.85rem;
-  margin-bottom: 0.4rem;
-  color: var(--text);
-}
-
-.lb-match__status {
-  font-weight: 400;
-  color: var(--text-muted);
-}
-
-.lb-match__side {
+.lb-match__row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 0.3rem 0.4rem;
-  padding: 0.25rem 0;
+  gap: 0.5rem;
 }
 
 .lb-match__team {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.lb-match__team--right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.lb-match__team--center {
+  align-items: center;
+  text-align: center;
+}
+
+.lb-match__team-name {
   font-weight: 700;
   font-size: 0.85rem;
 }
 
-.lb-match__names {
-  grid-column: 2;
+.lb-match__team-players {
   font-size: 0.7rem;
   color: var(--text-muted);
+  font-weight: 400;
 }
 
-.lb-match__points {
-  font-size: 1.1rem;
-  grid-row: 1;
-  grid-column: 3;
-}
-
-.lb-match__bonus {
-  grid-column: 2;
+.lb-match__team-bonus {
   font-size: 0.7rem;
   font-weight: 600;
+}
+
+.lb-match__score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 1.4rem;
+  font-weight: 800;
+  justify-content: center;
+}
+
+.lb-match__dash {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 1rem;
+}
+
+.lb-match__score--multi {
+  width: 100%;
+  margin-bottom: 0.4rem;
+}
+
+.lb-match__teams-row {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-around;
+  gap: 0.5rem;
+}
+
+.lb-match__footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #eef1ef;
 }
 
 .lb-players {

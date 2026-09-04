@@ -36,28 +36,44 @@ function teamTotalsHtml(teamTotals) {
   `;
 }
 
+function teamBlockHtml(s, align) {
+  return `
+    <div class="lb-match__team lb-match__team--${align}" style="color:${s.color}">
+      <div class="lb-match__team-name">${s.flagEmoji ?? ''} ${s.teamName}</div>
+      <div class="lb-match__team-players">${s.label}</div>
+      ${s.bonus ? `<div class="lb-match__team-bonus">+${s.bonus} bonus</div>` : ''}
+    </div>
+  `;
+}
+
 function matchCardHtml(m) {
   if (!m.setUp) {
     return `<div class="lb-match lb-match--empty">Match ${m.globalNumber} · Not set up yet</div>`;
   }
+
+  const scoreHtml = m.sides
+    .map((s) => `<strong style="color:${s.color}">${s.points}</strong>`)
+    .join('<span class="lb-match__dash">–</span>');
+
+  const bodyHtml =
+    m.sides.length === 2
+      ? `
+        ${teamBlockHtml(m.sides[0], 'left')}
+        <div class="lb-match__score">${scoreHtml}</div>
+        ${teamBlockHtml(m.sides[1], 'right')}
+      `
+      : `
+        <div class="lb-match__score lb-match__score--multi">${scoreHtml}</div>
+        <div class="lb-match__teams-row">${m.sides.map((s) => teamBlockHtml(s, 'center')).join('')}</div>
+      `;
+
   return `
     <div class="lb-match">
-      <div class="lb-match__title">
-        <span>Match ${m.globalNumber} · ${FORMAT_LABEL[m.format] ?? m.format}</span>
-        <span class="lb-match__status">${m.holesPlayed}/18 holes</span>
+      <div class="lb-match__row">${bodyHtml}</div>
+      <div class="lb-match__footer">
+        <span>Match ${m.globalNumber}</span>
+        <span>${m.holesPlayed}/18 holes</span>
       </div>
-      ${m.sides
-        .map(
-          (s) => `
-        <div class="lb-match__side" style="color:${s.color}">
-          <span class="lb-match__flag">${s.flagEmoji ?? ''}</span>
-          <span class="lb-match__team">${s.teamName}</span>
-          <span class="lb-match__names">${s.label}</span>
-          <strong class="lb-match__points">${s.points}</strong>
-          <span class="lb-match__bonus">${s.bonus ? `+${s.bonus} bonus` : ''}</span>
-        </div>`
-        )
-        .join('')}
     </div>
   `;
 }
@@ -67,12 +83,13 @@ function renderTeamTab(teamTotals, perMatch, courseByDay) {
   teamTabEl.innerHTML = `
     ${teamTotalsHtml(teamTotals)}
     ${[1, 2, 3]
-      .map(
-        (day) => `
-      <h3 class="lb-day-heading">Day ${day} · ${courseByDay.get(day) ?? ''}</h3>
+      .map((day) => {
+        const format = byDay.get(day)[0]?.format;
+        return `
+      <h3 class="lb-day-heading">Day ${day} · ${FORMAT_LABEL[format] ?? format} · ${courseByDay.get(day) ?? ''}</h3>
       <div class="lb-matches">${byDay.get(day).map(matchCardHtml).join('')}</div>
-    `
-      )
+    `;
+      })
       .join('')}
   `;
 }

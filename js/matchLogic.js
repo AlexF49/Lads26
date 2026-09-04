@@ -288,20 +288,29 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
   }
 
   // Pass 2: manual bonus picks (Net Eagle is automatic and already handled in pass 1).
-  const bonusPointsByTypeId = new Map(
+  // Clutch Shot counts toward each player's individual leaderboard total, but stays out
+  // of team/match totals — it's tracked as its own separate individual competition there.
+  const teamBonusPointsByTypeId = new Map(
     competitionTypes.filter((ct) => ct.counts_toward_bonus && !ct.is_automated).map((ct) => [ct.id, ct.points])
   );
+  const playerBonusPointsByTypeId = new Map(
+    competitionTypes.filter((ct) => !ct.is_automated).map((ct) => [ct.id, ct.points])
+  );
   for (const row of competitionResults) {
-    const pts = bonusPointsByTypeId.get(row.competition_type_id);
-    if (pts == null) continue;
-    const pt = playerTotalsMap.get(row.winner_id);
-    if (pt) pt.bonusPoints += pts;
+    const playerPts = playerBonusPointsByTypeId.get(row.competition_type_id);
+    if (playerPts != null) {
+      const pt = playerTotalsMap.get(row.winner_id);
+      if (pt) pt.bonusPoints += playerPts;
+    }
+
+    const teamPts = teamBonusPointsByTypeId.get(row.competition_type_id);
+    if (teamPts == null) continue;
     const teamId = playerById.get(row.winner_id)?.team_id;
-    if (teamTotalsMap.has(teamId)) teamTotalsMap.get(teamId).bonus += pts;
+    if (teamTotalsMap.has(teamId)) teamTotalsMap.get(teamId).bonus += teamPts;
     const mapping = sideByDayPlayer.get(`${row.day}:${row.winner_id}`);
     if (mapping) {
       const m = matchWork[mapping.workIndex];
-      m.sideBonus.set(mapping.sideKey, m.sideBonus.get(mapping.sideKey) + pts);
+      m.sideBonus.set(mapping.sideKey, m.sideBonus.get(mapping.sideKey) + teamPts);
     }
   }
 

@@ -329,6 +329,7 @@ export function aggregateEvent({ teams, players, matches, matchPlayers, scores, 
           sides: m.sides.map((s) => ({
             key: s.key,
             label: s.label,
+            names: s.namesWithHandicap.map((n) => n.name),
             teamId: s.teamId,
             teamName: s.teamName,
             color: s.color,

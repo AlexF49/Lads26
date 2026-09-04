@@ -40,7 +40,7 @@ function teamBlockHtml(s, align) {
   return `
     <div class="lb-match__team lb-match__team--${align}" style="color:${s.color}">
       <div class="lb-match__team-name">${s.flagEmoji ?? ''} ${s.teamName}</div>
-      <div class="lb-match__team-players">${s.label}</div>
+      <div class="lb-match__team-players">${s.names.map((n) => `<span>${n}</span>`).join('')}</div>
       ${s.bonus ? `<div class="lb-match__team-bonus">+${s.bonus} bonus</div>` : ''}
     </div>
   `;

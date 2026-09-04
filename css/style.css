@@ -279,14 +279,23 @@ body {
 
 /* ---- Match scoring page ---- */
 .totals {
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
   background: var(--bg-card);
   border-radius: 14px;
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.totals__row {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.totals__row--bonus {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #eef1ef;
 }
 
 .totals__side {
@@ -298,6 +307,54 @@ body {
 
 .totals__side strong {
   font-size: 1.4rem;
+}
+
+.totals__row--bonus .totals__side strong {
+  font-size: 1.1rem;
+}
+
+/* ---- Bonus shots grid ---- */
+.bonus-grid__title {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.bonus-grid {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.bonus-grid__row {
+  display: grid;
+  grid-template-columns: 1.7fr repeat(4, 1fr);
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.bonus-grid__row--header span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.bonus-grid__label {
+  font-size: 0.8rem;
+}
+
+.bonus-grid__label small {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.bonus-grid__radio {
+  display: flex;
+  justify-content: center;
+}
+
+.bonus-grid__radio input {
+  width: 1.3rem;
+  height: 1.3rem;
 }
 
 .hole-card {

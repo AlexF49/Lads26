@@ -21,8 +21,12 @@ function setStatus(message, isError = false) {
 let match; // { id, day, match_number, format }
 let holes; // [{ hole_number, par, stroke_index }]
 let sides; // format-specific participant description, see buildSides()
+let matchPlayersFlat; // [{ playerId, name, color }] — the 3 individuals in this match, any format
+let competitionTypes; // [{ id, name, points }]
 // Map<holeNumber, Map<playerId, grossStrokes>>
 let scoresByHole = new Map();
+// Map<holeNumber, Map<competitionTypeId, winnerPlayerId>>
+let bonusByHole = new Map();
 let currentHole = 1;
 
 function handicapForDay(player) {
@@ -157,6 +161,18 @@ function computeHolePoints(hole, holeScores) {
   return new Map(sides.map((s, i) => [s.key, pts[i]]));
 }
 
+function bonusPointsByPlayer() {
+  const pointsByType = new Map(competitionTypes.map((ct) => [ct.id, ct.points]));
+  const totals = new Map(matchPlayersFlat.map((p) => [p.playerId, 0]));
+  for (const winners of bonusByHole.values()) {
+    for (const [typeId, winnerId] of winners) {
+      if (!totals.has(winnerId)) continue;
+      totals.set(winnerId, totals.get(winnerId) + (pointsByType.get(typeId) ?? 0));
+    }
+  }
+  return totals;
+}
+
 function renderTotals() {
   const running = new Map(sides.map((s) => [s.key, 0]));
   for (const hole of holes) {
@@ -167,9 +183,24 @@ function renderTotals() {
       running.set(key, running.get(key) + pts);
     }
   }
-  totalsEl.innerHTML = sides
-    .map((s) => `<div class="totals__side" style="color:${s.color}"><strong>${running.get(s.key)}</strong><span>${s.label}</span></div>`)
-    .join('');
+
+  const bonusTotals = bonusPointsByPlayer();
+
+  totalsEl.innerHTML = `
+    <div class="totals__row">
+      ${sides
+        .map((s) => `<div class="totals__side" style="color:${s.color}"><strong>${running.get(s.key)}</strong><span>${s.label}</span></div>`)
+        .join('')}
+    </div>
+    <div class="totals__row totals__row--bonus">
+      ${matchPlayersFlat
+        .map(
+          (p) =>
+            `<div class="totals__side" style="color:${p.color}"><strong>+${bonusTotals.get(p.playerId)}</strong><span>${p.name} bonus</span></div>`
+        )
+        .join('')}
+    </div>
+  `;
 }
 
 function renderHole() {
@@ -231,6 +262,35 @@ function renderHole() {
       .join('');
   }
 
+  const bonusSelections = bonusByHole.get(currentHole) ?? new Map();
+  const bonusGridHtml = `
+    <div class="bonus-grid">
+      <div class="bonus-grid__row bonus-grid__row--header">
+        <span></span>
+        <span>—</span>
+        ${matchPlayersFlat.map((p) => `<span style="color:${p.color}">${p.name.split(' ')[0]}</span>`).join('')}
+      </div>
+      ${competitionTypes
+        .map((ct) => {
+          const selected = bonusSelections.get(ct.id) ?? 'none';
+          const options = [{ playerId: 'none', label: '—' }, ...matchPlayersFlat];
+          return `
+          <div class="bonus-grid__row">
+            <span class="bonus-grid__label">${ct.name} <small>(${ct.points}pt)</small></span>
+            ${options
+              .map(
+                (o) => `
+              <label class="bonus-grid__radio">
+                <input type="radio" name="bonus-${ct.id}" value="${o.playerId}" ${o.playerId === selected ? 'checked' : ''} />
+              </label>`
+              )
+              .join('')}
+          </div>`;
+        })
+        .join('')}
+    </div>
+  `;
+
   holeCardEl.innerHTML = `
     <div class="hole-card__nav">
       <button type="button" id="prev-hole" ${currentHole === 1 ? 'disabled' : ''}>&larr; Prev</button>
@@ -240,6 +300,8 @@ function renderHole() {
     <p class="hole-card__meta">Par ${hole.par} · Stroke Index ${hole.stroke_index}</p>
     ${inputsHtml}
     <p class="hole-card__points" id="hole-points"></p>
+    <h4 class="bonus-grid__title">Bonus shots</h4>
+    ${bonusGridHtml}
     <button type="button" id="save-hole" class="save-btn">Save${currentHole < 18 ? ' & Next' : ''}</button>
   `;
 
@@ -353,6 +415,44 @@ function renderHole() {
     }
 
     scoresByHole.set(currentHole, new Map(rows.map((r) => [r.player_id, r.gross_strokes])));
+
+    // Bonus shots: one radio group per category, "none" means no winner logged this hole.
+    const bonusUpserts = [];
+    const bonusDeletes = [];
+    const newBonusSelections = new Map();
+    for (const ct of competitionTypes) {
+      const checked = holeCardEl.querySelector(`input[name="bonus-${ct.id}"]:checked`)?.value ?? 'none';
+      if (checked === 'none') {
+        bonusDeletes.push(ct.id);
+      } else {
+        newBonusSelections.set(ct.id, checked);
+        bonusUpserts.push({ day: match.day, hole: currentHole, competition_type_id: ct.id, winner_id: checked });
+      }
+    }
+
+    if (bonusUpserts.length) {
+      const { error: bonusError } = await supabase
+        .from('competition_results')
+        .upsert(bonusUpserts, { onConflict: 'day,hole,competition_type_id' });
+      if (bonusError) {
+        setStatus(`Could not save bonus shots: ${bonusError.message}`, true);
+        return;
+      }
+    }
+    if (bonusDeletes.length) {
+      const { error: bonusDeleteError } = await supabase
+        .from('competition_results')
+        .delete()
+        .eq('day', match.day)
+        .eq('hole', currentHole)
+        .in('competition_type_id', bonusDeletes);
+      if (bonusDeleteError) {
+        setStatus(`Could not save bonus shots: ${bonusDeleteError.message}`, true);
+        return;
+      }
+    }
+    bonusByHole.set(currentHole, newBonusSelections);
+
     setStatus('Saved ✓');
     renderTotals();
 
@@ -391,20 +491,28 @@ async function init() {
   const globalMatchNumber = (match.day - 1) * 3 + match.match_number;
   matchTitleEl.textContent = `Match ${globalMatchNumber}`;
 
-  const [{ data: matchPlayers, error: mpError }, { data: course, error: courseError }, { data: existingScores, error: scoresError }] =
-    await Promise.all([
-      supabase
-        .from('match_players')
-        .select('player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex ) )')
-        .eq('match_id', matchId),
-      supabase.from('courses').select('id').eq('day', match.day).single(),
-      supabase.from('scores').select('player_id, hole, gross_strokes').eq('match_id', matchId),
-    ]);
+  const [
+    { data: matchPlayers, error: mpError },
+    { data: course, error: courseError },
+    { data: existingScores, error: scoresError },
+    { data: types, error: typesError },
+    { data: existingBonus, error: bonusError },
+  ] = await Promise.all([
+    supabase
+      .from('match_players')
+      .select('player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex ) )')
+      .eq('match_id', matchId),
+    supabase.from('courses').select('id').eq('day', match.day).single(),
+    supabase.from('scores').select('player_id, hole, gross_strokes').eq('match_id', matchId),
+    supabase.from('competition_types').select('id, name, points').order('name'),
+    supabase.from('competition_results').select('hole, competition_type_id, winner_id').eq('day', match.day),
+  ]);
 
-  if (mpError || courseError || scoresError) {
-    setStatus(`Could not load match data: ${(mpError || courseError || scoresError).message}`, true);
+  if (mpError || courseError || scoresError || typesError || bonusError) {
+    setStatus(`Could not load match data: ${(mpError || courseError || scoresError || typesError || bonusError).message}`, true);
     return;
   }
+  competitionTypes = types;
 
   if (!matchPlayers || matchPlayers.length === 0) {
     setStatus('This match has no players set up yet.', true);
@@ -426,11 +534,22 @@ async function init() {
 
   sides = buildSides(matchPlayers);
   matchPlayersEl.textContent = sides.map((s) => s.label).join(' vs ');
+  matchPlayersFlat = matchPlayers.map((mp) => ({
+    playerId: mp.player_id,
+    name: mp.players.name,
+    color: mp.players.teams.color_hex,
+  }));
 
   scoresByHole = new Map();
   for (const row of existingScores ?? []) {
     if (!scoresByHole.has(row.hole)) scoresByHole.set(row.hole, new Map());
     scoresByHole.get(row.hole).set(row.player_id, row.gross_strokes);
+  }
+
+  bonusByHole = new Map();
+  for (const row of existingBonus ?? []) {
+    if (!bonusByHole.has(row.hole)) bonusByHole.set(row.hole, new Map());
+    bonusByHole.get(row.hole).set(row.competition_type_id, row.winner_id);
   }
 
   // Resume at the first hole without a full set of saved scores. Every format writes

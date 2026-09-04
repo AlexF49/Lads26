@@ -215,14 +215,16 @@ create table hazards (
 -- ============================================================================
 create table competition_types (
   id uuid primary key default gen_random_uuid(),
-  name text not null unique
+  name text not null unique,
+  points integer not null       -- from Lads 2026.xlsx, Leaderboard tab, Point Allocation row
 );
 
-insert into competition_types (name) values
-  ('Nearest the Pin'),
-  ('Drive the Green'),
-  ('Long Putt'),
-  ('Hammer');
+insert into competition_types (name, points) values
+  ('Nearest the Pin', 2),
+  ('Drive the Green', 3),
+  ('Long Putt', 3),
+  ('Chip In', 3),
+  ('Clutch Shot', 1);
 
 create table competition_results (
   id uuid primary key default gen_random_uuid(),
@@ -330,6 +332,7 @@ create policy "public write update" on scores for update using (true);
 create policy "public write" on hazards for insert with check (true);
 create policy "public write insert" on competition_results for insert with check (true);
 create policy "public write update" on competition_results for update using (true);
+create policy "public write delete" on competition_results for delete using (true);
 create policy "public write" on corrections for insert with check (true);
 create policy "public write" on expenses for insert with check (true);
 create policy "public write" on photos for insert with check (true);

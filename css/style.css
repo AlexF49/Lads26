@@ -477,6 +477,23 @@ body {
   font-weight: 700;
 }
 
+.bio-card__stats {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.bio-card__stat {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bio-card__stat strong {
+  font-size: 1.1rem;
+  color: var(--text);
+  margin-right: 0.25rem;
+}
+
 .bio-card__affiliations {
   font-size: 0.75rem;
   color: var(--text-muted);

@@ -43,6 +43,7 @@ function avatarHtml(player, color) {
 
 function renderBioCard(player, team) {
   const affiliations = player.stats?.teams;
+  const record = player.stats?.record;
   bioCardEl.hidden = false;
   bioCardEl.style.borderColor = team.color_hex;
   bioCardEl.innerHTML = `
@@ -52,6 +53,10 @@ function renderBioCard(player, team) {
         <h2 class="bio-card__name">${player.name}</h2>
         <p class="bio-card__team">${team.flag_emoji ?? ''} ${team.name}</p>
       </div>
+    </div>
+    <div class="bio-card__stats">
+      ${record != null ? `<span class="bio-card__stat"><strong>${record}</strong> win${record === 1 ? '' : 's'}</span>` : ''}
+      ${player.handicap != null ? `<span class="bio-card__stat"><strong>${player.handicap}</strong> handicap</span>` : ''}
     </div>
     ${affiliations ? `<p class="bio-card__affiliations">${affiliations}</p>` : ''}
     <p class="bio-card__bio">${player.bio ?? 'Bio coming soon.'}</p>
@@ -90,7 +95,7 @@ async function init() {
 
   const [{ data: teams, error: teamsError }, { data: players, error: playersError }] = await Promise.all([
     supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
-    supabase.from('players').select('id, name, team_id, bio, photo_url, stats'),
+    supabase.from('players').select('id, name, team_id, bio, photo_url, stats, handicap'),
   ]);
 
   if (teamsError || playersError || !teams || !players) {

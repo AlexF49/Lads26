@@ -10,7 +10,7 @@ const matchCentreTilesEl = document.getElementById('tiles-match-centre');
 const informationTilesEl = document.getElementById('tiles-information');
 
 const MATCH_CENTRE_COMING_SOON = [];
-const INFORMATION_COMING_SOON = [{ label: 'Info', emoji: 'ℹ️' }];
+const INFORMATION_COMING_SOON = [];
 
 function tile({ href, emoji, label, subtitle, disabled }) {
   const el = document.createElement(href ? 'a' : 'div');
@@ -142,6 +142,7 @@ async function init() {
   informationTilesEl.appendChild(tile({ href: 'expenses.html', emoji: '💷', label: 'Expenses' }));
   informationTilesEl.appendChild(tile({ href: 'gallery.html', emoji: '📷', label: 'Gallery' }));
   informationTilesEl.appendChild(tile({ href: 'admin.html', emoji: '🔧', label: 'Admin' }));
+  informationTilesEl.appendChild(tile({ href: 'info.html', emoji: 'ℹ️', label: 'Info' }));
   for (const { label, emoji } of INFORMATION_COMING_SOON) {
     informationTilesEl.appendChild(tile({ emoji, label, subtitle: 'Coming soon', disabled: true }));
   }

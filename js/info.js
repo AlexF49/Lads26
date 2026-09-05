@@ -29,10 +29,15 @@ function render() {
       </ul>
       <h3 class="rules-card__subtitle">Saturday 12th September</h3>
       <ul class="rules-list">
+        <li>8:30am &mdash; Pick-up at Hotel for Quinta South</li>
         <li>2:50pm &mdash; Transfer from Quinta Golf back to the hotel</li>
         <li>3:00pm &mdash; Pool time or Shack time depending on vote</li>
         <li>5:30pm &mdash; Dinner at <a href="https://restaurante2passos.com/" target="_blank" rel="noopener">2 Passos</a></li>
         <li>8:00pm &mdash; Saturday Night Ballbag, <a href="https://restaurante2passos.com/" target="_blank" rel="noopener">2 Passos</a> Bar Area</li>
+      </ul>
+      <h3 class="rules-card__subtitle">Sunday 13th September</h3>
+      <ul class="rules-list">
+        <li>7:55am &mdash; Pick-up at hotel for Laranjal</li>
       </ul>
     </div>`;
 

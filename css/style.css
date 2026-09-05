@@ -45,7 +45,7 @@ body {
 .splash-banner {
   background-image: linear-gradient(rgba(6, 14, 10, 0.5), rgba(6, 14, 10, 0.75)), url('../img/splash-banner.jpg');
   background-size: cover;
-  background-position: center;
+  background-position: center 20%;
   border-radius: 16px;
   padding: 1.75rem 1rem 1.5rem;
   margin-bottom: 1.5rem;

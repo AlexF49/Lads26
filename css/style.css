@@ -289,8 +289,12 @@ body {
   filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.45));
 }
 
+.sponsor-logo--guinness img {
+  max-height: 82%;
+}
+
 .sponsor-logo--ferrari img {
-  max-height: 76%;
+  max-height: 65%;
 }
 
 /* ---- Leaderboard ---- */

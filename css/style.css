@@ -42,6 +42,25 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.splash-banner {
+  background-image: linear-gradient(rgba(6, 14, 10, 0.5), rgba(6, 14, 10, 0.75)), url('../img/splash-banner.jpg');
+  background-size: cover;
+  background-position: center;
+  border-radius: 16px;
+  padding: 1.75rem 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.splash-banner .header {
+  margin-bottom: 0;
+}
+
+.splash-banner .header__title,
+.splash-banner .header__subtitle {
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
 .header__emblem-badge {
   position: absolute;
   left: 0;

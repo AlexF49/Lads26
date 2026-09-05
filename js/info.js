@@ -23,8 +23,8 @@ function render() {
     '11 Sep &middot; 8:00pm &mdash; Transfer from Quinta Golf back to the hotel',
     '11 Sep &middot; 8:30pm &mdash; Dinner at <a href="https://www.cabanasass.com/" target="_blank" rel="noopener">Cabana Sass</a>',
     '12 Sep &middot; 2:50pm &mdash; Transfer from Quinta Golf back to the hotel, pool time',
-    '12 Sep &middot; 5:30pm &mdash; Saturday Night Ballbag, Praia do Ancao, 2 Passos Bar Area',
-    '12 Sep &middot; 7:30pm &mdash; Dinner at 2 Passos',
+    '12 Sep &middot; 5:30pm &mdash; Saturday Night Ballbag, Praia do Ancao, <a href="https://restaurante2passos.com/" target="_blank" rel="noopener">2 Passos</a> Bar Area',
+    '12 Sep &middot; 7:30pm &mdash; Dinner at <a href="https://restaurante2passos.com/" target="_blank" rel="noopener">2 Passos</a>',
   ]);
 
   hotelTabEl.innerHTML = `

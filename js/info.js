@@ -14,9 +14,9 @@ function card(title, items) {
 
 function render() {
   transfersTabEl.innerHTML = card('Airport Transfers', [
-    '10 Sep 2026 &middot; 2 people &middot; Flight BA512 &middot; 14:25 &middot; transfer to the Magnolia Hotel',
-    '11 Sep 2026 &middot; 7 people &middot; Flights BA8481 &amp; BA2660 &middot; 11:10am &middot; transfer to Quinta do Lago North',
-    '13 Sep 2026 &middot; 9 people &middot; Flight BA2663 &middot; 16:15 pickup at Laranjal for the 18:55pm flight',
+    '<strong>10 Sep 2026 &middot; 14:25 pickup</strong><br />2 people &middot; Flight BA512 &middot; transfer to the Magnolia Hotel',
+    '<strong>11 Sep 2026 &middot; 11:10am pickup</strong><br />7 people &middot; Flights BA8481 &amp; BA2660 &middot; transfer to Quinta do Lago North',
+    '<strong>13 Sep 2026 &middot; 16:15 pickup</strong><br />9 people &middot; Flight BA2663 &middot; at Laranjal for the 18:55pm flight',
   ]);
 
   restaurantsTabEl.innerHTML = card('Restaurants &amp; Bars', [

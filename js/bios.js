@@ -70,7 +70,7 @@ function renderBioCard(player, team) {
     </div>
     ${affiliations ? `<p class="bio-card__affiliations">${affiliations}</p>` : ''}
     <p class="bio-card__bio">${player.bio ?? 'Bio coming soon.'}</p>
-    <button type="button" class="bio-card__edit-btn" id="edit-bio-btn">✏️ Update Bio</button>
+    <button type="button" class="bio-card__edit-btn${player.bio_updated ? ' bio-card__edit-btn--done' : ''}" id="edit-bio-btn">✏️ Update Bio</button>
   `;
   bioCardEl.querySelector('#edit-bio-btn').addEventListener('click', openBioModal);
   bioCardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -97,7 +97,7 @@ bioFormEl.addEventListener('submit', async (e) => {
   if (!currentPlayer) return;
 
   const text = bioTextareaEl.value.trim();
-  const { error } = await supabase.from('players').update({ bio: text }).eq('id', currentPlayer.id);
+  const { error } = await supabase.from('players').update({ bio: text, bio_updated: true }).eq('id', currentPlayer.id);
   if (error) {
     bioModalErrorEl.textContent = `Could not save: ${error.message}`;
     bioModalErrorEl.hidden = false;
@@ -105,6 +105,7 @@ bioFormEl.addEventListener('submit', async (e) => {
   }
 
   currentPlayer.bio = text;
+  currentPlayer.bio_updated = true;
   closeBioModal();
   renderBioCard(currentPlayer, currentTeam);
 });
@@ -140,7 +141,7 @@ async function init() {
 
   const [{ data: teams, error: teamsError }, { data: players, error: playersError }] = await Promise.all([
     supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
-    supabase.from('players').select('id, name, team_id, bio, photo_url, stats, handicap'),
+    supabase.from('players').select('id, name, team_id, bio, bio_updated, photo_url, stats, handicap'),
   ]);
 
   if (teamsError || playersError || !teams || !players) {

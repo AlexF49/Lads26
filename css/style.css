@@ -664,6 +664,12 @@ body {
   cursor: pointer;
 }
 
+.bio-card__edit-btn--done {
+  background: #d7dbd8;
+  border-color: #c3c9c5;
+  color: var(--text-muted);
+}
+
 /* ---- History ---- */
 .history-text {
   background: var(--bg-card);

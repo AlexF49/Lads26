@@ -37,6 +37,7 @@ create table players (
   seed integer,                     -- 1/2/3 within their team, used to order the roster display
   nickname text,                    -- shown instead of first name in the bonus grid header
   bio text,                         -- player bios subpage
+  bio_updated boolean not null default false,  -- flips true once someone submits a bio via the Update Bio button
   photo_url text,                   -- player bios subpage
   stats jsonb default '{}'::jsonb,  -- freeform career stats for the bios subpage
   created_at timestamptz default now()
@@ -82,7 +83,7 @@ create table holes (
 
 -- Day 1 — Quinta do Lago North
 with c as (
-  insert into courses (day, name, par_total) values (1, 'Quinta do Lago North', 71)
+  insert into courses (day, name, par_total) values (1, 'Quinta do Lago North', 72)
   returning id
 )
 insert into holes (course_id, hole_number, par, stroke_index, yardage_white, yardage_yellow, yardage_red)
@@ -93,7 +94,7 @@ from c, (values
   (3,  5,  9, 523, 500, 450),
   (4,  4,  1, 370, 349, 298),
   (5,  4,  5, 312, 390, 242),
-  (6,  3, 13, 334, 300, 215),
+  (6,  4, 13, 334, 300, 215),
   (7,  5,  7, 501, 482, 328),
   (8,  3, 17, 171, 148,  92),
   (9,  4,  3, 369, 341, 280),

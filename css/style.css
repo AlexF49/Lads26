@@ -651,6 +651,19 @@ body {
   margin: 0;
 }
 
+.bio-card__edit-btn {
+  display: block;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  border: 2px solid #e3e7e4;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* ---- History ---- */
 .history-text {
   background: var(--bg-card);
@@ -876,7 +889,8 @@ body {
 }
 
 .modal__label select,
-.modal__label input {
+.modal__label input,
+.modal__label textarea {
   display: block;
   width: 100%;
   margin-top: 0.3rem;
@@ -885,6 +899,8 @@ body {
   border: 2px solid #e3e7e4;
   font-size: 1rem;
   color: var(--text);
+  font-family: inherit;
+  resize: vertical;
 }
 
 .modal__row {

@@ -24,6 +24,23 @@
     <section id="bio-card" class="bio-card" hidden></section>
   </div>
 
+  <div id="bio-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal">
+      <h2 class="modal__title">Update Bio</h2>
+      <form id="bio-form">
+        <label class="modal__label">
+          Bio text
+          <textarea id="bio-textarea" rows="6" placeholder="Paste bio text here"></textarea>
+        </label>
+        <p id="bio-modal-error" class="modal__error" hidden></p>
+        <div class="modal__actions">
+          <button type="button" id="bio-cancel-btn" class="change-btn">Cancel</button>
+          <button type="submit" class="save-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module" src="js/bios.js"></script>
 </body>
 </html>

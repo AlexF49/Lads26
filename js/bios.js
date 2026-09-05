@@ -6,6 +6,14 @@ const statusEl = document.getElementById('status');
 const teamTabsEl = document.getElementById('team-tabs');
 const playersRowEl = document.getElementById('players-row');
 const bioCardEl = document.getElementById('bio-card');
+const bioModalBackdropEl = document.getElementById('bio-modal-backdrop');
+const bioFormEl = document.getElementById('bio-form');
+const bioTextareaEl = document.getElementById('bio-textarea');
+const bioModalErrorEl = document.getElementById('bio-modal-error');
+const bioCancelBtnEl = document.getElementById('bio-cancel-btn');
+
+let currentPlayer = null;
+let currentTeam = null;
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
@@ -42,6 +50,8 @@ function avatarHtml(player, color) {
 }
 
 function renderBioCard(player, team) {
+  currentPlayer = player;
+  currentTeam = team;
   const affiliations = player.stats?.teams;
   const record = player.stats?.record;
   bioCardEl.hidden = false;
@@ -60,9 +70,44 @@ function renderBioCard(player, team) {
     </div>
     ${affiliations ? `<p class="bio-card__affiliations">${affiliations}</p>` : ''}
     <p class="bio-card__bio">${player.bio ?? 'Bio coming soon.'}</p>
+    <button type="button" class="bio-card__edit-btn" id="edit-bio-btn">✏️ Update Bio</button>
   `;
+  bioCardEl.querySelector('#edit-bio-btn').addEventListener('click', openBioModal);
   bioCardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+function openBioModal() {
+  bioModalErrorEl.hidden = true;
+  bioTextareaEl.value = currentPlayer?.bio ?? '';
+  bioModalBackdropEl.hidden = false;
+  bioTextareaEl.focus();
+}
+
+function closeBioModal() {
+  bioModalBackdropEl.hidden = true;
+}
+
+bioCancelBtnEl.addEventListener('click', closeBioModal);
+bioModalBackdropEl.addEventListener('click', (e) => {
+  if (e.target === bioModalBackdropEl) closeBioModal();
+});
+
+bioFormEl.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!currentPlayer) return;
+
+  const text = bioTextareaEl.value.trim();
+  const { error } = await supabase.from('players').update({ bio: text }).eq('id', currentPlayer.id);
+  if (error) {
+    bioModalErrorEl.textContent = `Could not save: ${error.message}`;
+    bioModalErrorEl.hidden = false;
+    return;
+  }
+
+  currentPlayer.bio = text;
+  closeBioModal();
+  renderBioCard(currentPlayer, currentTeam);
+});
 
 function renderPlayers(teamPlayers, team) {
   playersRowEl.innerHTML = teamPlayers

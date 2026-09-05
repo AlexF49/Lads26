@@ -19,13 +19,21 @@ function render() {
     '<strong>13 Sep 2026 &middot; 16:15 pickup</strong><br />9 people &middot; Flight BA2663 &middot; at Laranjal for the 18:55pm flight',
   ]);
 
-  restaurantsTabEl.innerHTML = card('Restaurants &amp; Bars', [
-    '11 Sep &middot; 8:00pm &mdash; Transfer from Quinta Golf back to the hotel',
-    '11 Sep &middot; 8:30pm &mdash; Dinner at <a href="https://www.cabanasass.com/" target="_blank" rel="noopener">Cabana Sass</a>',
-    '12 Sep &middot; 2:50pm &mdash; Transfer from Quinta Golf back to the hotel, pool time',
-    '12 Sep &middot; 5:30pm &mdash; Saturday Night Ballbag, Praia do Ancao, <a href="https://restaurante2passos.com/" target="_blank" rel="noopener">2 Passos</a> Bar Area',
-    '12 Sep &middot; 7:30pm &mdash; Dinner at <a href="https://restaurante2passos.com/" target="_blank" rel="noopener">2 Passos</a>',
-  ]);
+  restaurantsTabEl.innerHTML = `
+    <div class="rules-card">
+      <h2 class="rules-card__title">Itinerary</h2>
+      <h3 class="rules-card__subtitle">Friday 11th September</h3>
+      <ul class="rules-list">
+        <li>8:00pm &mdash; Transfer from Quinta Golf back to the hotel</li>
+        <li>8:30pm &mdash; Dinner at <a href="https://www.cabanasass.com/" target="_blank" rel="noopener">Cabana Sass</a></li>
+      </ul>
+      <h3 class="rules-card__subtitle">Saturday 12th September</h3>
+      <ul class="rules-list">
+        <li>2:50pm &mdash; Transfer from Quinta Golf back to the hotel, pool time</li>
+        <li>5:30pm &mdash; Saturday Night Ballbag, Praia do Ancao, <a href="https://restaurante2passos.com/" target="_blank" rel="noopener">2 Passos</a> Bar Area</li>
+        <li>7:30pm &mdash; Dinner at <a href="https://restaurante2passos.com/" target="_blank" rel="noopener">2 Passos</a></li>
+      </ul>
+    </div>`;
 
   hotelTabEl.innerHTML = `
     <div class="rules-card">

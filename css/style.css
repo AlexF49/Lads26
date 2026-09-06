@@ -533,6 +533,11 @@ body {
   stroke-width: 1;
 }
 
+.worm-chart__gridline {
+  stroke: #eef1ef;
+  stroke-width: 1;
+}
+
 .worm-chart__tick {
   stroke: #d8dedb;
   stroke-width: 1;

@@ -130,11 +130,12 @@ function wormChartSvg(history, teamTotals) {
   const W = 320;
   const H = 176;
   const PAD = 10;
+  const PAD_LEFT = 26; // extra room for the 0-100% y-axis scale
   const AXIS_H = 16; // strip reserved at the bottom for the hole-count scale
   const plotH = H - AXIS_H;
   // Fixed to the whole event (9 matches x 18 holes), not just what's been played so far,
   // so the line's position on the axis actually reflects how much of the tournament is done.
-  const x = (h) => PAD + (h / TOTAL_HOLES) * (W - 2 * PAD);
+  const x = (h) => PAD_LEFT + (h / TOTAL_HOLES) * (W - PAD_LEFT - PAD);
   const y = (p) => PAD + (1 - p) * (plotH - 2 * PAD);
 
   const lines = [...byTeam.entries()]
@@ -157,10 +158,27 @@ function wormChartSvg(history, teamTotals) {
     })
     .join('');
 
+  // Y-axis scale: 0-100% win probability, with light gridlines at 25%/75% either side of
+  // the existing dashed 50% midline.
+  const yAxisHtml = [0, 0.25, 0.5, 0.75, 1]
+    .map((p) => {
+      const yPos = y(p).toFixed(1);
+      const gridline =
+        p === 0.25 || p === 0.75
+          ? `<line x1="${PAD_LEFT}" y1="${yPos}" x2="${W - PAD}" y2="${yPos}" class="worm-chart__gridline" />`
+          : '';
+      return `
+        ${gridline}
+        <text x="${PAD_LEFT - 5}" y="${yPos}" class="worm-chart__tick-label" text-anchor="end" dominant-baseline="middle">${Math.round(p * 100)}%</text>
+      `;
+    })
+    .join('');
+
   return `
     <svg viewBox="0 0 ${W} ${H}" class="worm-chart">
-      <line x1="${PAD}" y1="${y(0.5).toFixed(1)}" x2="${W - PAD}" y2="${y(0.5).toFixed(1)}" class="worm-chart__midline" />
-      <line x1="${PAD}" y1="${plotH - PAD}" x2="${W - PAD}" y2="${plotH - PAD}" class="worm-chart__axis" />
+      ${yAxisHtml}
+      <line x1="${PAD_LEFT}" y1="${y(0.5).toFixed(1)}" x2="${W - PAD}" y2="${y(0.5).toFixed(1)}" class="worm-chart__midline" />
+      <line x1="${PAD_LEFT}" y1="${plotH - PAD}" x2="${W - PAD}" y2="${plotH - PAD}" class="worm-chart__axis" />
       ${axisHtml}
       ${lines}
     </svg>

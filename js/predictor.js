@@ -11,7 +11,7 @@ const TRIALS = 10000;
 // in that format so far this event, blended with a neutral prior so a tiny early sample
 // doesn't swing to a false 90/10 read. FORM_PRIOR_WEIGHT is how many points of neutral
 // evidence the prior counts for — bigger = slower to trust observed form.
-const FORM_PRIOR_WEIGHT = 10;
+const FORM_PRIOR_WEIGHT = 60;
 
 // Real matchplay holes do tie reasonably often (both sides net the same score) — without
 // this the simulation would only ever produce clean sweeps, understating each team's floor.

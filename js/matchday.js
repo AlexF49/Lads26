@@ -13,6 +13,7 @@ const pickupTimeEl = document.getElementById('pickup-time');
 const PICKUP_TIME_BY_DAY = { 1: '1:30pm', 2: '8:15am', 3: '7:55am' };
 const statusEl = document.getElementById('status');
 const matchesEl = document.getElementById('matches');
+const teamScoresRowEl = document.getElementById('team-scores-row');
 
 const FORMAT_BY_DAY = { 1: 'greensomes', 2: 'betterball', 3: 'singles' };
 const SLOT_CONFIG = {
@@ -55,8 +56,10 @@ function boxScoreHtml(perMatchEntry) {
     .map((s) => `<strong style="color:${s.color}">${s.points}</strong>`)
     .join('<span class="lb-match__dash">–</span>');
   return `
-    <div class="lb-match__score">${scoreHtml}</div>
-    <p class="match-card__progress">${perMatchEntry.holesPlayed}/18 holes</p>
+    <div class="match-card__score-row">
+      <div class="lb-match__score match-card__score">${scoreHtml}</div>
+      <span class="match-card__progress">${perMatchEntry.holesPlayed}/18 holes</span>
+    </div>
   `;
 }
 
@@ -181,9 +184,8 @@ async function render() {
     return;
   }
 
-  const matchIds = matches.map((m) => m.id);
-
   const [
+    { data: allMatches, error: allMatchesError },
     { data: matchPlayers, error: mpError },
     { data: allPlayers, error: playersError },
     { data: teams, error: teamsError },
@@ -194,42 +196,48 @@ async function render() {
     { data: competitionResults },
     { data: hammers },
   ] = await Promise.all([
+    supabase.from('matches').select('id, day, match_number, format'),
     supabase
       .from('match_players')
       .select(
         'match_id, player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )'
-      )
-      .in('match_id', matchIds),
+      ),
     supabase.from('players').select('id, name, team_id, teams ( name, color_hex )').order('name'),
     supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
-    supabase.from('scores').select('match_id, day, hole, player_id, gross_strokes').in('match_id', matchIds),
-    supabase.from('courses').select('id, day, start_hole').eq('day', day),
+    supabase.from('scores').select('match_id, day, hole, player_id, gross_strokes'),
+    supabase.from('courses').select('id, day, start_hole'),
     supabase.from('holes').select('course_id, hole_number, par, stroke_index'),
     supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated'),
-    supabase.from('competition_results').select('day, winner_id, competition_type_id').eq('day', day),
-    supabase.from('hammers').select('match_id, hole, side').in('match_id', matchIds),
+    supabase.from('competition_results').select('day, winner_id, competition_type_id'),
+    supabase.from('hammers').select('match_id, hole, side'),
   ]);
 
-  if (mpError || playersError || teamsError) {
-    setStatus(`Could not load players: ${(mpError || playersError || teamsError).message}`, true);
+  if (mpError || playersError || teamsError || allMatchesError) {
+    setStatus(`Could not load players: ${(mpError || playersError || teamsError || allMatchesError).message}`, true);
     return;
   }
 
-  // Flatten the nested player info the join above pulls in.
-  const flatMatchPlayers = (matchPlayers ?? []).map((mp) => ({
-    match_id: mp.match_id,
-    player_id: mp.player_id,
-    side: mp.side,
-    name: mp.players.name,
-    teams: mp.players.teams,
-  }));
+  const matchIds = new Set(matches.map((m) => m.id));
+
+  // Flatten the nested player info the join above pulls in, scoped to today's matches.
+  const flatMatchPlayers = (matchPlayers ?? [])
+    .filter((mp) => matchIds.has(mp.match_id))
+    .map((mp) => ({
+      match_id: mp.match_id,
+      player_id: mp.player_id,
+      side: mp.side,
+      name: mp.players.name,
+      teams: mp.players.teams,
+    }));
 
   const assignedElsewhere = new Set(flatMatchPlayers.map((mp) => mp.player_id));
 
-  const { perMatch } = aggregateEvent({
+  // Aggregated across the whole event (not just today) so the top row shows overall team
+  // scores; box scores on individual cards are picked out by match id below.
+  const { teamTotals, perMatch } = aggregateEvent({
     teams: teams ?? [],
     players: allPlayers ?? [],
-    matches,
+    matches: allMatches ?? [],
     matchPlayers: matchPlayers ?? [],
     scores: scores ?? [],
     courses: courses ?? [],
@@ -239,6 +247,10 @@ async function render() {
     hammers: hammers ?? [],
   });
   const perMatchById = new Map(perMatch.map((m) => [m.matchId, m]));
+
+  teamScoresRowEl.innerHTML = teamTotals
+    .map((t) => `<div class="matchday-team-score" style="background:${t.color_hex}">${t.total}</div>`)
+    .join('');
 
   setStatus('');
   matches.forEach((match, i) => {

@@ -1059,6 +1059,23 @@ body {
 }
 
 /* ---- Matchday page ---- */
+.matchday-team-scores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.matchday-team-score {
+  border-radius: 12px;
+  padding: 0.75rem;
+  text-align: center;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.4rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
 .matches {
   display: grid;
   gap: 1rem;
@@ -1094,9 +1111,19 @@ body {
   opacity: 0.85;
 }
 
+.match-card__score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.match-card__score-row .match-card__score {
+  justify-content: flex-start;
+}
+
 .match-card__progress {
-  margin: 0.35rem 0 0;
-  text-align: center;
+  margin: 0;
   font-size: 0.75rem;
   color: var(--text-muted);
 }

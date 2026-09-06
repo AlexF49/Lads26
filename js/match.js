@@ -49,18 +49,25 @@ let bonusByHole = new Map();
 let hammersByHole = new Map();
 // Map<holeNumber, playerId> — Greensomes only: which pair member drove this hole.
 let drivesByHole = new Map();
+// Set<holeNumber> — Greensomes only: holes where the single player called a Gruesome.
+let gruesomesByHole = new Set();
 let currentHole = 1;
 
 const MIN_DRIVES = 6;
+const MAX_GRUESOMES = 2;
 
 function driversRemaining(playerId) {
   const driven = [...drivesByHole.values()].filter((id) => id === playerId).length;
   return Math.max(0, MIN_DRIVES - driven);
 }
 
-function driveDotsHtml(remaining, color) {
+function gruesomesRemaining() {
+  return Math.max(0, MAX_GRUESOMES - gruesomesByHole.size);
+}
+
+function driveDotsHtml(remaining, color, total = MIN_DRIVES) {
   return `<span class="drive-dots">${Array.from(
-    { length: MIN_DRIVES },
+    { length: total },
     (_, i) =>
       i >= remaining
         ? `<span class="drive-dot drive-dot--used"></span>`
@@ -276,7 +283,9 @@ function renderTotals() {
                 const dots =
                   match.format === 'greensomes' && s.key === 'pair'
                     ? driveDotsHtml(driversRemaining(s.playerIds[idx]), s.color)
-                    : '';
+                    : match.format === 'greensomes' && s.key === 'single'
+                      ? driveDotsHtml(gruesomesRemaining(), s.color, MAX_GRUESOMES)
+                      : '';
                 return `<span>${dots}${n.name} (${n.handicap})</span>`;
               })
               .join('')}
@@ -415,7 +424,10 @@ function renderHole() {
         <span class="score-row__net" data-net="pair"></span>
       </div>
       <div class="score-row" style="color:${singleSide.color}">
-        <span class="score-row__label">${singleSide.label}</span>
+        <label class="driver-row">
+          <span class="score-row__label">${singleSide.label}</span>
+          <input type="radio" data-gruesome ${gruesomesByHole.has(currentHole) ? 'checked' : ''} />
+        </label>
         ${stepper('single', singleVal)}
         <span class="score-row__net" data-net="single"></span>
       </div>
@@ -737,6 +749,30 @@ function renderHole() {
         }
         drivesByHole.delete(currentHole);
       }
+
+      // Gruesome (Greensomes only): the single player forcing the pair's worse drive.
+      const gruesomeCalled = holeCardEl.querySelector('[data-gruesome]')?.checked;
+      if (gruesomeCalled) {
+        const { error: gruesomeError } = await supabase
+          .from('gruesomes')
+          .upsert({ match_id: matchId, hole: currentHole }, { onConflict: 'match_id,hole' });
+        if (gruesomeError) {
+          setStatus(`Could not save gruesome: ${gruesomeError.message}`, true);
+          return;
+        }
+        gruesomesByHole.add(currentHole);
+      } else {
+        const { error: gruesomeDeleteError } = await supabase
+          .from('gruesomes')
+          .delete()
+          .eq('match_id', matchId)
+          .eq('hole', currentHole);
+        if (gruesomeDeleteError) {
+          setStatus(`Could not save gruesome: ${gruesomeDeleteError.message}`, true);
+          return;
+        }
+        gruesomesByHole.delete(currentHole);
+      }
     }
 
     setStatus('Saved ✓');
@@ -790,6 +826,7 @@ async function init() {
     { data: existingBonus, error: bonusError },
     { data: existingHammers, error: hammersError },
     { data: existingDrives, error: drivesError },
+    { data: existingGruesomes, error: gruesomesError },
   ] = await Promise.all([
     supabase
       .from('match_players')
@@ -801,11 +838,12 @@ async function init() {
     supabase.from('competition_results').select('hole, competition_type_id, winner_id').eq('day', match.day),
     supabase.from('hammers').select('hole, side').eq('match_id', matchId),
     supabase.from('drives').select('hole, player_id').eq('match_id', matchId),
+    supabase.from('gruesomes').select('hole').eq('match_id', matchId),
   ]);
 
-  if (mpError || courseError || scoresError || typesError || bonusError || hammersError || drivesError) {
+  if (mpError || courseError || scoresError || typesError || bonusError || hammersError || drivesError || gruesomesError) {
     setStatus(
-      `Could not load match data: ${(mpError || courseError || scoresError || typesError || bonusError || hammersError || drivesError).message}`,
+      `Could not load match data: ${(mpError || courseError || scoresError || typesError || bonusError || hammersError || drivesError || gruesomesError).message}`,
       true
     );
     return;
@@ -863,6 +901,8 @@ async function init() {
   for (const row of existingDrives ?? []) {
     drivesByHole.set(row.hole, row.player_id);
   }
+
+  gruesomesByHole = new Set((existingGruesomes ?? []).map((row) => row.hole));
 
   // Resume at the first hole without a full set of saved scores. Every format writes
   // one scores row per player in the match (3), even greensomes where the pair share

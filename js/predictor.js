@@ -21,8 +21,9 @@ const TRIALS = 10000;
 // this the simulation would only ever produce clean sweeps, understating each team's floor.
 const TIE_PROBABILITY = 0.2;
 
-// 9 matches × 18 holes — the whole event, used to flatten win probability early on.
-const TOTAL_HOLES = 162;
+// 9 matches × 18 holes — the whole event, used to flatten win probability early on and as
+// the worm chart's fixed x-axis scale.
+export const TOTAL_HOLES = 162;
 
 // Fisher-Yates shuffle — an unbiased random ordering, used to rank a 3-way singles hole
 // with no team favoured over another.

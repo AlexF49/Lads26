@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient.js';
 import { aggregateEvent } from './matchLogic.js';
-import { buildPrediction } from './predictor.js';
+import { buildPrediction, TOTAL_HOLES } from './predictor.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
@@ -128,11 +128,14 @@ function wormChartSvg(history, teamTotals) {
   }
 
   const W = 320;
-  const H = 160;
+  const H = 176;
   const PAD = 10;
-  const maxHoles = Math.max(1, ...history.map((r) => r.holes_completed));
-  const x = (h) => PAD + (h / maxHoles) * (W - 2 * PAD);
-  const y = (p) => PAD + (1 - p) * (H - 2 * PAD);
+  const AXIS_H = 16; // strip reserved at the bottom for the hole-count scale
+  const plotH = H - AXIS_H;
+  // Fixed to the whole event (9 matches x 18 holes), not just what's been played so far,
+  // so the line's position on the axis actually reflects how much of the tournament is done.
+  const x = (h) => PAD + (h / TOTAL_HOLES) * (W - 2 * PAD);
+  const y = (p) => PAD + (1 - p) * (plotH - 2 * PAD);
 
   const lines = [...byTeam.entries()]
     .map(([teamId, rows]) => {
@@ -143,9 +146,22 @@ function wormChartSvg(history, teamTotals) {
     })
     .join('');
 
+  const ticks = [0, TOTAL_HOLES / 3, (TOTAL_HOLES / 3) * 2, TOTAL_HOLES];
+  const axisHtml = ticks
+    .map((h, i) => {
+      const anchor = i === 0 ? 'start' : i === ticks.length - 1 ? 'end' : 'middle';
+      return `
+        <line x1="${x(h).toFixed(1)}" y1="${plotH - PAD}" x2="${x(h).toFixed(1)}" y2="${plotH - PAD + 4}" class="worm-chart__tick" />
+        <text x="${x(h).toFixed(1)}" y="${H - 4}" class="worm-chart__tick-label" text-anchor="${anchor}">${h}</text>
+      `;
+    })
+    .join('');
+
   return `
     <svg viewBox="0 0 ${W} ${H}" class="worm-chart">
       <line x1="${PAD}" y1="${y(0.5).toFixed(1)}" x2="${W - PAD}" y2="${y(0.5).toFixed(1)}" class="worm-chart__midline" />
+      <line x1="${PAD}" y1="${plotH - PAD}" x2="${W - PAD}" y2="${plotH - PAD}" class="worm-chart__axis" />
+      ${axisHtml}
       ${lines}
     </svg>
   `;

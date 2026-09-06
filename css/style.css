@@ -528,6 +528,21 @@ body {
   stroke-dasharray: 4 3;
 }
 
+.worm-chart__axis {
+  stroke: #d8dedb;
+  stroke-width: 1;
+}
+
+.worm-chart__tick {
+  stroke: #d8dedb;
+  stroke-width: 1;
+}
+
+.worm-chart__tick-label {
+  fill: var(--text-muted);
+  font-size: 8px;
+}
+
 .predictor-empty {
   color: #ffffff;
   opacity: 0.85;

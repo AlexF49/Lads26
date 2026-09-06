@@ -280,12 +280,12 @@ function renderTotals() {
           <div class="totals__names">
             ${s.namesWithHandicap
               .map((n, idx) => {
+                if (match.format === 'greensomes' && s.key === 'single') {
+                  const dots = driveDotsHtml(gruesomesRemaining(), s.color, MAX_GRUESOMES);
+                  return `<span class="totals__single-name">${n.name} (${n.handicap})${dots}</span>`;
+                }
                 const dots =
-                  match.format === 'greensomes' && s.key === 'pair'
-                    ? driveDotsHtml(driversRemaining(s.playerIds[idx]), s.color)
-                    : match.format === 'greensomes' && s.key === 'single'
-                      ? driveDotsHtml(gruesomesRemaining(), s.color, MAX_GRUESOMES)
-                      : '';
+                  match.format === 'greensomes' && s.key === 'pair' ? driveDotsHtml(driversRemaining(s.playerIds[idx]), s.color) : '';
                 return `<span>${dots}${n.name} (${n.handicap})</span>`;
               })
               .join('')}

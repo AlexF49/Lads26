@@ -1248,6 +1248,16 @@ body {
   text-align: center;
 }
 
+.totals__single-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.totals__single-name .drive-dots {
+  margin: 0.2rem 0 0;
+}
+
 .totals__hammers {
   display: flex;
   gap: 0.15rem;

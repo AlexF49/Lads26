@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient.js';
-import { teeTimeForMatch } from './matchLogic.js';
+import { teeTimeForMatch, aggregateEvent } from './matchLogic.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
@@ -49,9 +49,20 @@ async function ensureMatches() {
   return matches;
 }
 
-function renderAssignedCard(match, players, globalMatchNumber) {
+function boxScoreHtml(perMatchEntry) {
+  if (!perMatchEntry) return '';
+  const scoreHtml = perMatchEntry.sides
+    .map((s) => `<strong style="color:${s.color}">${s.points}</strong>`)
+    .join('<span class="lb-match__dash">–</span>');
+  return `
+    <div class="lb-match__score">${scoreHtml}</div>
+    <p class="match-card__progress">${perMatchEntry.holesPlayed}/18 holes</p>
+  `;
+}
+
+function renderAssignedCard(match, players, globalMatchNumber, perMatchEntry) {
   const card = document.createElement('section');
-  card.className = 'match-card';
+  card.className = 'match-card match-card--clickable';
 
   const pair = players.filter((p) => p.side === 'pair');
   const singles = players.filter((p) => p.side === 'single');
@@ -69,12 +80,18 @@ function renderAssignedCard(match, players, globalMatchNumber) {
       <button type="button" class="edit-btn" data-match-id="${match.id}">Edit</button>
     </div>
     ${match.format === 'singles' ? sideHtml(singles, 'Players') : sideHtml(pair, 'Pair') + sideHtml(singles, 'Single')}
-    <a class="score-link" href="match.html?id=${match.id}">Enter scores →</a>
+    ${boxScoreHtml(perMatchEntry)}
   `;
 
-  card.querySelector('.edit-btn').addEventListener('click', async () => {
+  card.querySelector('.edit-btn').addEventListener('click', async (e) => {
+    e.stopPropagation();
     await supabase.from('match_players').delete().eq('match_id', match.id);
     render();
+  });
+
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.edit-btn')) return;
+    window.location.href = `match.html?id=${match.id}`;
   });
 
   return card;
@@ -166,16 +183,35 @@ async function render() {
 
   const matchIds = matches.map((m) => m.id);
 
-  const [{ data: matchPlayers, error: mpError }, { data: allPlayers, error: playersError }] = await Promise.all([
+  const [
+    { data: matchPlayers, error: mpError },
+    { data: allPlayers, error: playersError },
+    { data: teams, error: teamsError },
+    { data: scores },
+    { data: courses },
+    { data: holes },
+    { data: competitionTypes },
+    { data: competitionResults },
+    { data: hammers },
+  ] = await Promise.all([
     supabase
       .from('match_players')
-      .select('match_id, player_id, side, players ( name, team_id, teams ( name, color_hex ) )')
+      .select(
+        'match_id, player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )'
+      )
       .in('match_id', matchIds),
     supabase.from('players').select('id, name, team_id, teams ( name, color_hex )').order('name'),
+    supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
+    supabase.from('scores').select('match_id, day, hole, player_id, gross_strokes').in('match_id', matchIds),
+    supabase.from('courses').select('id, day, start_hole').eq('day', day),
+    supabase.from('holes').select('course_id, hole_number, par, stroke_index'),
+    supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated'),
+    supabase.from('competition_results').select('day, winner_id, competition_type_id').eq('day', day),
+    supabase.from('hammers').select('match_id, hole, side').in('match_id', matchIds),
   ]);
 
-  if (mpError || playersError) {
-    setStatus(`Could not load players: ${(mpError || playersError).message}`, true);
+  if (mpError || playersError || teamsError) {
+    setStatus(`Could not load players: ${(mpError || playersError || teamsError).message}`, true);
     return;
   }
 
@@ -190,12 +226,26 @@ async function render() {
 
   const assignedElsewhere = new Set(flatMatchPlayers.map((mp) => mp.player_id));
 
+  const { perMatch } = aggregateEvent({
+    teams: teams ?? [],
+    players: allPlayers ?? [],
+    matches,
+    matchPlayers: matchPlayers ?? [],
+    scores: scores ?? [],
+    courses: courses ?? [],
+    holes: holes ?? [],
+    competitionTypes: competitionTypes ?? [],
+    competitionResults: competitionResults ?? [],
+    hammers: hammers ?? [],
+  });
+  const perMatchById = new Map(perMatch.map((m) => [m.matchId, m]));
+
   setStatus('');
   matches.forEach((match, i) => {
     const globalMatchNumber = (day - 1) * 3 + match.match_number;
     const playersInMatch = flatMatchPlayers.filter((mp) => mp.match_id === match.id);
     if (playersInMatch.length > 0) {
-      matchesEl.appendChild(renderAssignedCard(match, playersInMatch, globalMatchNumber));
+      matchesEl.appendChild(renderAssignedCard(match, playersInMatch, globalMatchNumber, perMatchById.get(match.id)));
     } else {
       matchesEl.appendChild(renderPickerCard(match, allPlayers, assignedElsewhere, globalMatchNumber));
     }

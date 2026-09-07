@@ -13,6 +13,7 @@ import {
   lastHoleForCourse,
 } from './matchLogic.js';
 import { buildPrediction, totalHolesCompleted } from './predictor.js';
+import { queueWrite, initAutoSync, onQueueChange, pendingCount } from './offlineQueue.js';
 
 const STORAGE_KEY = 'lads26_player_id';
 
@@ -23,6 +24,7 @@ const backLinkEl = document.getElementById('back-link');
 const matchTitleEl = document.getElementById('match-title');
 const matchPlayersEl = document.getElementById('match-players');
 const statusEl = document.getElementById('status');
+const syncStatusEl = document.getElementById('sync-status');
 const totalsEl = document.getElementById('totals');
 const holeSummaryEl = document.getElementById('hole-summary');
 const holeCardEl = document.getElementById('hole-card');
@@ -31,6 +33,30 @@ function setStatus(message, isError = false) {
   statusEl.textContent = message;
   statusEl.classList.toggle('status--error', isError);
 }
+
+// Reflects the offline queue: hidden once everything's synced and the browser thinks
+// it's online, otherwise tells the scorer their taps are saved locally and will sync
+// on their own — nothing to fix, no need to hover over the phone waiting.
+function renderSyncStatus(pending) {
+  if (pending === 0 && navigator.onLine) {
+    syncStatusEl.hidden = true;
+    return;
+  }
+  syncStatusEl.hidden = false;
+  if (!navigator.onLine) {
+    syncStatusEl.textContent =
+      pending === 0
+        ? '📡 No signal — scores will be saved on this phone and synced automatically'
+        : `📡 No signal — ${pending} change${pending === 1 ? '' : 's'} saved on this phone, will sync automatically`;
+  } else {
+    syncStatusEl.textContent = `⏳ Syncing ${pending} saved change${pending === 1 ? '' : 's'}…`;
+  }
+}
+
+onQueueChange(renderSyncStatus);
+window.addEventListener('online', () => renderSyncStatus(pendingCount()));
+window.addEventListener('offline', () => renderSyncStatus(pendingCount()));
+initAutoSync(supabase);
 
 let match; // { id, day, match_number, format }
 let holes; // [{ hole_number, par, stroke_index }]
@@ -648,9 +674,9 @@ function renderHole() {
       });
     }
 
-    const { error } = await supabase.from('scores').upsert(rows, { onConflict: 'player_id,day,hole' });
-    if (error) {
-      setStatus(`Could not save: ${error.message}`, true);
+    const scoresResult = await queueWrite(supabase, { table: 'scores', op: 'upsert', rows, onConflict: 'player_id,day,hole' });
+    if (!scoresResult.ok) {
+      setStatus(`Could not save: ${scoresResult.error.message}`, true);
       return;
     }
 
@@ -671,23 +697,25 @@ function renderHole() {
     }
 
     if (bonusUpserts.length) {
-      const { error: bonusError } = await supabase
-        .from('competition_results')
-        .upsert(bonusUpserts, { onConflict: 'day,hole,competition_type_id' });
-      if (bonusError) {
-        setStatus(`Could not save bonus shots: ${bonusError.message}`, true);
+      const result = await queueWrite(supabase, {
+        table: 'competition_results',
+        op: 'upsert',
+        rows: bonusUpserts,
+        onConflict: 'day,hole,competition_type_id',
+      });
+      if (!result.ok) {
+        setStatus(`Could not save bonus shots: ${result.error.message}`, true);
         return;
       }
     }
     if (bonusDeletes.length) {
-      const { error: bonusDeleteError } = await supabase
-        .from('competition_results')
-        .delete()
-        .eq('day', match.day)
-        .eq('hole', currentHole)
-        .in('competition_type_id', bonusDeletes);
-      if (bonusDeleteError) {
-        setStatus(`Could not save bonus shots: ${bonusDeleteError.message}`, true);
+      const result = await queueWrite(supabase, {
+        table: 'competition_results',
+        op: 'delete',
+        match: { day: match.day, hole: currentHole, competition_type_id: bonusDeletes },
+      });
+      if (!result.ok) {
+        setStatus(`Could not save bonus shots: ${result.error.message}`, true);
         return;
       }
     }
@@ -699,26 +727,25 @@ function renderHole() {
       const uncalledHammers = ['pair', 'single'].filter((k) => !calledHammers.includes(k));
 
       if (calledHammers.length) {
-        const { error: hammerError } = await supabase
-          .from('hammers')
-          .upsert(
-            calledHammers.map((side) => ({ match_id: matchId, hole: currentHole, side })),
-            { onConflict: 'match_id,hole,side' }
-          );
-        if (hammerError) {
-          setStatus(`Could not save hammer: ${hammerError.message}`, true);
+        const result = await queueWrite(supabase, {
+          table: 'hammers',
+          op: 'upsert',
+          rows: calledHammers.map((side) => ({ match_id: matchId, hole: currentHole, side })),
+          onConflict: 'match_id,hole,side',
+        });
+        if (!result.ok) {
+          setStatus(`Could not save hammer: ${result.error.message}`, true);
           return;
         }
       }
       if (uncalledHammers.length) {
-        const { error: hammerDeleteError } = await supabase
-          .from('hammers')
-          .delete()
-          .eq('match_id', matchId)
-          .eq('hole', currentHole)
-          .in('side', uncalledHammers);
-        if (hammerDeleteError) {
-          setStatus(`Could not save hammer: ${hammerDeleteError.message}`, true);
+        const result = await queueWrite(supabase, {
+          table: 'hammers',
+          op: 'delete',
+          match: { match_id: matchId, hole: currentHole, side: uncalledHammers },
+        });
+        if (!result.ok) {
+          setStatus(`Could not save hammer: ${result.error.message}`, true);
           return;
         }
       }
@@ -729,22 +756,25 @@ function renderHole() {
     if (match.format === 'greensomes') {
       const driverId = holeCardEl.querySelector('[data-driver]:checked')?.value;
       if (driverId) {
-        const { error: driveError } = await supabase
-          .from('drives')
-          .upsert({ match_id: matchId, hole: currentHole, player_id: driverId }, { onConflict: 'match_id,hole' });
-        if (driveError) {
-          setStatus(`Could not save driver: ${driveError.message}`, true);
+        const result = await queueWrite(supabase, {
+          table: 'drives',
+          op: 'upsert',
+          rows: { match_id: matchId, hole: currentHole, player_id: driverId },
+          onConflict: 'match_id,hole',
+        });
+        if (!result.ok) {
+          setStatus(`Could not save driver: ${result.error.message}`, true);
           return;
         }
         drivesByHole.set(currentHole, driverId);
       } else {
-        const { error: driveDeleteError } = await supabase
-          .from('drives')
-          .delete()
-          .eq('match_id', matchId)
-          .eq('hole', currentHole);
-        if (driveDeleteError) {
-          setStatus(`Could not save driver: ${driveDeleteError.message}`, true);
+        const result = await queueWrite(supabase, {
+          table: 'drives',
+          op: 'delete',
+          match: { match_id: matchId, hole: currentHole },
+        });
+        if (!result.ok) {
+          setStatus(`Could not save driver: ${result.error.message}`, true);
           return;
         }
         drivesByHole.delete(currentHole);
@@ -753,22 +783,25 @@ function renderHole() {
       // Gruesome (Greensomes only): the single player forcing the pair's worse drive.
       const gruesomeCalled = holeCardEl.querySelector('[data-gruesome]')?.checked;
       if (gruesomeCalled) {
-        const { error: gruesomeError } = await supabase
-          .from('gruesomes')
-          .upsert({ match_id: matchId, hole: currentHole }, { onConflict: 'match_id,hole' });
-        if (gruesomeError) {
-          setStatus(`Could not save gruesome: ${gruesomeError.message}`, true);
+        const result = await queueWrite(supabase, {
+          table: 'gruesomes',
+          op: 'upsert',
+          rows: { match_id: matchId, hole: currentHole },
+          onConflict: 'match_id,hole',
+        });
+        if (!result.ok) {
+          setStatus(`Could not save gruesome: ${result.error.message}`, true);
           return;
         }
         gruesomesByHole.add(currentHole);
       } else {
-        const { error: gruesomeDeleteError } = await supabase
-          .from('gruesomes')
-          .delete()
-          .eq('match_id', matchId)
-          .eq('hole', currentHole);
-        if (gruesomeDeleteError) {
-          setStatus(`Could not save gruesome: ${gruesomeDeleteError.message}`, true);
+        const result = await queueWrite(supabase, {
+          table: 'gruesomes',
+          op: 'delete',
+          match: { match_id: matchId, hole: currentHole },
+        });
+        if (!result.ok) {
+          setStatus(`Could not save gruesome: ${result.error.message}`, true);
           return;
         }
         gruesomesByHole.delete(currentHole);

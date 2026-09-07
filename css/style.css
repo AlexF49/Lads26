@@ -293,7 +293,9 @@ body {
 }
 
 .sponsor-logo--guinness img {
-  max-height: 52px;
+  max-height: 60px;
+  position: relative;
+  top: 4px;
 }
 
 .sponsor-logo--ferrari img {

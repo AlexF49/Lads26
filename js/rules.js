@@ -5,6 +5,13 @@ const STORAGE_KEY = 'lads26_player_id';
 
 const formatRowEl = document.getElementById('format-row');
 const contentEl = document.getElementById('rules-content');
+const rulesModalBackdropEl = document.getElementById('rules-modal-backdrop');
+const rulesFormEl = document.getElementById('rules-form');
+const rulesModalFormatNameEl = document.getElementById('rules-modal-format-name');
+const rulesExplanationTextareaEl = document.getElementById('rules-explanation-textarea');
+const rulesScoringTextareaEl = document.getElementById('rules-scoring-textarea');
+const rulesModalErrorEl = document.getElementById('rules-modal-error');
+const rulesCancelBtnEl = document.getElementById('rules-cancel-btn');
 
 // Sourced from https://sites.google.com/view/lads-lads-lads/rules
 const FORMATS = [
@@ -93,7 +100,11 @@ function bonusLines(ctByName, day) {
   return lines;
 }
 
+let currentFormat = null;
+let currentCtByName = new Map();
+
 function renderFormatCard(f, ctByName) {
+  currentFormat = f;
   contentEl.hidden = false;
   contentEl.innerHTML = `
     <div class="rules-card">
@@ -103,9 +114,65 @@ function renderFormatCard(f, ctByName) {
       ${list(f.scoring)}
       <h3 class="rules-card__subtitle">Bonus Points</h3>
       ${list([...(f.extraBonus ?? []), ...bonusLines(ctByName, f.day)])}
+      <button type="button" class="rules-card__edit-btn" id="rules-edit-btn">✏️ Edit Explanation / Scoring</button>
     </div>`;
+  contentEl.querySelector('#rules-edit-btn').addEventListener('click', openRulesModal);
   contentEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+function openRulesModal() {
+  if (!currentFormat) return;
+  rulesModalErrorEl.hidden = true;
+  rulesModalFormatNameEl.textContent = currentFormat.title;
+  rulesExplanationTextareaEl.value = currentFormat.rules.join('\n');
+  rulesScoringTextareaEl.value = currentFormat.scoring.join('\n');
+  rulesModalBackdropEl.hidden = false;
+  rulesExplanationTextareaEl.focus();
+}
+
+function closeRulesModal() {
+  rulesModalBackdropEl.hidden = true;
+}
+
+rulesCancelBtnEl.addEventListener('click', closeRulesModal);
+rulesModalBackdropEl.addEventListener('click', (e) => {
+  if (e.target === rulesModalBackdropEl) closeRulesModal();
+});
+
+function linesFrom(textareaValue) {
+  return textareaValue
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+rulesFormEl.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!currentFormat) return;
+
+  const rules = linesFrom(rulesExplanationTextareaEl.value);
+  const scoring = linesFrom(rulesScoringTextareaEl.value);
+  if (rules.length === 0 || scoring.length === 0) {
+    rulesModalErrorEl.textContent = 'Explanation and Scoring each need at least one line.';
+    rulesModalErrorEl.hidden = false;
+    return;
+  }
+
+  const { error } = await supabase
+    .from('settings')
+    .upsert({ key: `rules_day${currentFormat.day}`, value: JSON.stringify({ rules, scoring }) });
+
+  if (error) {
+    rulesModalErrorEl.textContent = `Could not save: ${error.message}`;
+    rulesModalErrorEl.hidden = false;
+    return;
+  }
+
+  currentFormat.rules = rules;
+  currentFormat.scoring = scoring;
+  closeRulesModal();
+  renderFormatCard(currentFormat, currentCtByName);
+});
 
 // A white golf ball (with a dimple pattern) reads poorly on the button's own white
 // background, so it's drawn on a dark green circle for contrast — same green as the
@@ -124,12 +191,12 @@ function golfBallSvg(label) {
 }
 
 function render(competitionTypes) {
-  const ctByName = new Map(competitionTypes.map((ct) => [ct.name, ct]));
+  currentCtByName = new Map(competitionTypes.map((ct) => [ct.name, ct]));
 
   function selectFormat(f) {
     formatRowEl.querySelectorAll('.bio-player').forEach((b) => b.classList.remove('bio-player--active'));
     formatRowEl.querySelector(`[data-format="${f.title}"]`).classList.add('bio-player--active');
-    renderFormatCard(f, ctByName);
+    renderFormatCard(f, currentCtByName);
   }
 
   formatRowEl.innerHTML = FORMATS.map(
@@ -151,16 +218,34 @@ async function init() {
     return;
   }
 
-  const { data: competitionTypes, error } = await supabase
-    .from('competition_types')
-    .select('id, name, points, points_day1, points_day2, points_day3, sort_order')
-    .order('sort_order');
+  const [{ data: competitionTypes, error }, { data: settingsRows }] = await Promise.all([
+    supabase
+      .from('competition_types')
+      .select('id, name, points, points_day1, points_day2, points_day3, sort_order')
+      .order('sort_order'),
+    supabase.from('settings').select('key, value').like('key', 'rules_day%'),
+  ]);
 
   if (error) {
     contentEl.hidden = false;
     contentEl.innerHTML = `<p class="status status--error">Could not load bonus points: ${error.message}</p>`;
     return;
   }
+
+  // Apply any saved edits (from the Rules page's own Edit button) on top of the
+  // hardcoded defaults above, keyed by day.
+  (settingsRows ?? []).forEach((row) => {
+    const day = Number(row.key.replace('rules_day', ''));
+    const format = FORMATS.find((f) => f.day === day);
+    if (!format) return;
+    try {
+      const override = JSON.parse(row.value);
+      if (Array.isArray(override.rules)) format.rules = override.rules;
+      if (Array.isArray(override.scoring)) format.scoring = override.scoring;
+    } catch {
+      // Ignore a malformed stored value and keep the hardcoded default.
+    }
+  });
 
   render(competitionTypes ?? []);
 }

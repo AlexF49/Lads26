@@ -809,6 +809,19 @@ body {
   margin-bottom: 0;
 }
 
+.rules-card__edit-btn {
+  display: block;
+  margin-top: 1rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  border: 2px solid #e3e7e4;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* ---- Expenses ---- */
 .expenses-actions {
   display: flex;

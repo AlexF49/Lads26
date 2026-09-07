@@ -20,6 +20,27 @@
     <section id="rules-content" hidden></section>
   </div>
 
+  <div id="rules-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal">
+      <h2 class="modal__title">Edit <span id="rules-modal-format-name"></span></h2>
+      <form id="rules-form">
+        <label class="modal__label">
+          Explanation (one point per line)
+          <textarea id="rules-explanation-textarea" rows="6"></textarea>
+        </label>
+        <label class="modal__label">
+          Scoring (one point per line)
+          <textarea id="rules-scoring-textarea" rows="4"></textarea>
+        </label>
+        <p id="rules-modal-error" class="modal__error" hidden></p>
+        <div class="modal__actions">
+          <button type="button" id="rules-cancel-btn" class="change-btn">Cancel</button>
+          <button type="submit" class="save-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module" src="js/rules.js"></script>
 </body>
 </html>

@@ -427,6 +427,11 @@ create policy "public write update" on players for update using (true);
 create policy "public write update" on competition_types for update using (true);
 create policy "public write update" on courses for update using (true);
 
+-- Rules page: editing a format's explanation/scoring text on the fly (stored as a
+-- settings row per day, e.g. key 'rules_day1').
+create policy "public write insert" on settings for insert with check (true);
+create policy "public write update" on settings for update using (true);
+
 -- ============================================================================
 -- Realtime — the leaderboard subscribes to these so it re-sorts live as scores
 -- and bonus picks are saved, without needing a manual refresh.

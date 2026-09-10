@@ -93,12 +93,22 @@ export function buildPrediction({ teamTotals, perMatch }, trials = TRIALS) {
   const progress = Math.min(1, totalHolesCompleted(perMatch) / TOTAL_HOLES);
   const neutralShare = 1 / teamIds.length;
 
-  return teamIds.map((id) => ({
-    teamId: id,
-    currentPoints: currentPoints.get(id),
-    projectedPoints: pointsSum.get(id) / trials,
-    winProbability: progress * (winCounts.get(id) / trials) + (1 - progress) * neutralShare,
-  }));
+  // TEMP fun tweak: before a single hole's been played, show Paul Cooper's team
+  // (Australia) on 23% and the other two on 38% instead of a flat 3-way split — just
+  // for a laugh at the start. Vanishes the instant any hole anywhere gets scored
+  // (progress > 0), since real results take over from there as normal. Remove this
+  // block once the joke's had its moment.
+  const JOKE_START_OVERRIDE = { australia: 0.23, europe: 0.38, usa: 0.38 };
+
+  return teamIds.map((id) => {
+    const blended = progress * (winCounts.get(id) / trials) + (1 - progress) * neutralShare;
+    return {
+      teamId: id,
+      currentPoints: currentPoints.get(id),
+      projectedPoints: pointsSum.get(id) / trials,
+      winProbability: progress === 0 ? JOKE_START_OVERRIDE[id] ?? blended : blended,
+    };
+  });
 }
 
 // Total holes completed across the whole event so far — the worm diagram's x-axis.

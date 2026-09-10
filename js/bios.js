@@ -11,6 +11,11 @@ const bioFormEl = document.getElementById('bio-form');
 const bioTextareaEl = document.getElementById('bio-textarea');
 const bioModalErrorEl = document.getElementById('bio-modal-error');
 const bioCancelBtnEl = document.getElementById('bio-cancel-btn');
+const extraModalBackdropEl = document.getElementById('extra-modal-backdrop');
+const extraFormEl = document.getElementById('extra-form');
+const extraTextareaEl = document.getElementById('extra-textarea');
+const extraModalErrorEl = document.getElementById('extra-modal-error');
+const extraCancelBtnEl = document.getElementById('extra-cancel-btn');
 
 let currentPlayer = null;
 let currentTeam = null;
@@ -70,9 +75,17 @@ function renderBioCard(player, team) {
     </div>
     ${affiliations ? `<p class="bio-card__affiliations">${affiliations}</p>` : ''}
     <p class="bio-card__bio">${player.bio ?? 'Bio coming soon.'}</p>
+    <div class="bio-card__extra-box" id="edit-extra-box">
+      ${
+        player.fun_facts
+          ? `<p class="bio-card__extra-text">${player.fun_facts}</p>`
+          : `<p class="bio-card__extra-text bio-card__extra-text--placeholder"><em>3 things</em></p>`
+      }
+    </div>
     <button type="button" class="bio-card__edit-btn${player.bio_updated ? ' bio-card__edit-btn--done' : ''}" id="edit-bio-btn">✏️ Update Bio</button>
   `;
   bioCardEl.querySelector('#edit-bio-btn').addEventListener('click', openBioModal);
+  bioCardEl.querySelector('#edit-extra-box').addEventListener('click', openExtraModal);
   bioCardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -110,6 +123,39 @@ bioFormEl.addEventListener('submit', async (e) => {
   renderBioCard(currentPlayer, currentTeam);
 });
 
+function openExtraModal() {
+  extraModalErrorEl.hidden = true;
+  extraTextareaEl.value = currentPlayer?.fun_facts ?? '';
+  extraModalBackdropEl.hidden = false;
+  extraTextareaEl.focus();
+}
+
+function closeExtraModal() {
+  extraModalBackdropEl.hidden = true;
+}
+
+extraCancelBtnEl.addEventListener('click', closeExtraModal);
+extraModalBackdropEl.addEventListener('click', (e) => {
+  if (e.target === extraModalBackdropEl) closeExtraModal();
+});
+
+extraFormEl.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!currentPlayer) return;
+
+  const text = extraTextareaEl.value.trim();
+  const { error } = await supabase.from('players').update({ fun_facts: text }).eq('id', currentPlayer.id);
+  if (error) {
+    extraModalErrorEl.textContent = `Could not save: ${error.message}`;
+    extraModalErrorEl.hidden = false;
+    return;
+  }
+
+  currentPlayer.fun_facts = text;
+  closeExtraModal();
+  renderBioCard(currentPlayer, currentTeam);
+});
+
 function renderPlayers(teamPlayers, team) {
   playersRowEl.innerHTML = teamPlayers
     .map(
@@ -141,7 +187,7 @@ async function init() {
 
   const [{ data: teams, error: teamsError }, { data: players, error: playersError }] = await Promise.all([
     supabase.from('teams').select('id, name, color_hex, flag_emoji').order('id'),
-    supabase.from('players').select('id, name, team_id, bio, bio_updated, photo_url, stats, handicap'),
+    supabase.from('players').select('id, name, team_id, bio, bio_updated, fun_facts, photo_url, stats, handicap'),
   ]);
 
   if (teamsError || playersError || !teams || !players) {

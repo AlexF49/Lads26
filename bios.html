@@ -42,6 +42,23 @@
     </div>
   </div>
 
+  <div id="extra-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal">
+      <h2 class="modal__title">3 Things</h2>
+      <form id="extra-form">
+        <label class="modal__label">
+          Extra info
+          <textarea id="extra-textarea" rows="4" placeholder="3 things"></textarea>
+        </label>
+        <p id="extra-modal-error" class="modal__error" hidden></p>
+        <div class="modal__actions">
+          <button type="button" id="extra-cancel-btn" class="change-btn">Cancel</button>
+          <button type="submit" class="save-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module" src="js/bios.js"></script>
 </body>
 </html>

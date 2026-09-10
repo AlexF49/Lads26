@@ -38,6 +38,7 @@ create table players (
   nickname text,                    -- shown instead of first name in the bonus grid header
   bio text,                         -- player bios subpage
   bio_updated boolean not null default false,  -- flips true once someone submits a bio via the Update Bio button
+  fun_facts text,                   -- "3 things" freeform box on the bios subpage, below the bio
   photo_url text,                   -- player bios subpage
   stats jsonb default '{}'::jsonb,  -- freeform career stats for the bios subpage
   created_at timestamptz default now()

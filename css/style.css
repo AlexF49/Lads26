@@ -1282,19 +1282,13 @@ body {
   font-size: 1.4rem;
 }
 
-.totals__score-row {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+.totals__row--hammers {
+  margin-top: 0.35rem;
+}
+
+.totals__hammer-group {
+  display: flex;
   align-items: center;
-  column-gap: 0.35rem;
-}
-
-.totals__hammer-slot:first-child {
-  justify-self: end;
-}
-
-.totals__hammer-slot:last-child {
-  justify-self: start;
 }
 
 .totals__team {

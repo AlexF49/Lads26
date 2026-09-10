@@ -318,19 +318,27 @@ function renderTotals() {
   const bonusTotals = bonusPointsByPlayer();
   const hammerRemaining = hammerCounts();
 
+  const hammerRowHtml =
+    match.format === 'betterball'
+      ? `
+    <div class="totals__row totals__row--hammers">
+      ${sides
+        .map(
+          (s) => `
+        <div class="totals__hammer-group" style="color:${s.color}">${hammerIconsHtml(hammerRemaining.get(s.key))}</div>`
+        )
+        .join('')}
+    </div>`
+      : '';
+
   totalsEl.innerHTML = `
     <div class="totals__row">
       ${sides
-        .map((s, i) => {
-          const hammers = match.format === 'betterball' ? hammerIconsHtml(hammerRemaining.get(s.key)) : '';
-          return `
+        .map(
+          (s) => `
         <div class="totals__side" style="color:${s.color}">
           <span class="totals__team">${s.flagEmoji ?? ''} ${s.teamName}</span>
-          <div class="totals__score-row">
-            <div class="totals__hammer-slot">${i === 0 ? hammers : ''}</div>
-            <strong>${running.get(s.key)}</strong>
-            <div class="totals__hammer-slot">${i === 1 ? hammers : ''}</div>
-          </div>
+          <strong>${running.get(s.key)}</strong>
           <div class="totals__names">
             ${s.namesWithHandicap
               .map((n, idx) => {
@@ -344,10 +352,11 @@ function renderTotals() {
               })
               .join('')}
           </div>
-        </div>`;
-        })
+        </div>`
+        )
         .join('')}
     </div>
+    ${hammerRowHtml}
     <div class="totals__row totals__row--bonus">
       ${sides
         .flatMap((s) => (s.members ? s.members.map((m) => m.playerId) : s.playerIds))

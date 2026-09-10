@@ -1393,6 +1393,15 @@ body {
   padding: 0 3px;
 }
 
+/* A 2nd stroke on this hole (gap to the match's lowest handicap exceeds 18) — an
+   extra ring further out, with a gap matching the card background so it reads as
+   two concentric rings rather than one thick one. */
+.hole-summary__num--ring-double {
+  box-shadow:
+    0 0 0 3px var(--bg-card),
+    0 0 0 4.5px var(--ring-color);
+}
+
 .hole-summary__value {
   font-weight: 800;
   font-size: 1rem;

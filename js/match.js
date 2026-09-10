@@ -191,38 +191,66 @@ function netLabel(net, par) {
 
 // Which side(s) receive an extra match-play stroke on this hole, based purely on
 // handicaps and stroke index — independent of whether the hole has been scored yet.
-// Returns { textColor, ringColor } for the hole-summary number: textColor marks the
-// "primary" advantage for that hole, ringColor marks a second, independent handicap
-// also clearing the stroke-index threshold (Betterball's other pair member, or
-// Singles' 3rd-ranked player) — something the old single-side check couldn't show
-// since a 2-way comparison hides whichever handicap it wasn't built around.
+// Returns { textColor, ringColor, ringDouble } for the hole-summary number: textColor
+// marks the "primary" advantage for that hole, ringColor marks a second, independent
+// handicap also clearing the stroke-index threshold (Betterball's other pair member,
+// or Singles' 3rd-ranked player) — something a plain single-side check can't show
+// since a 2-way comparison hides whichever handicap it wasn't built around. ringDouble
+// means that player's gap to the match's lowest handicap exceeds 18, so they get a
+// stroke on every hole plus a second one on the hardest holes (stroke index <= gap -
+// 18) — a plain "has an extra stroke here" boolean can't tell those apart, which is
+// why every hole used to show the same marker once someone's gap crossed 18.
 function holeMarkers(hole) {
-  const extra = (handicap) => strokesReceived(relativeHandicap(handicap, matchMinHandicap), hole.stroke_index);
+  const strokes = (handicap) => strokesReceived(relativeHandicap(handicap, matchMinHandicap), hole.stroke_index);
 
   if (match.format === 'betterball') {
     const [pairSide, singleSide] = sides;
-    const pairAExtra = extra(pairSide.members[0].handicap) > 0;
-    const pairBExtra = extra(pairSide.members[1].handicap) > 0;
-    const singleExtra = extra(singleSide.handicap) > 0;
+    const individuals = [
+      { handicap: pairSide.members[0].handicap, color: pairSide.color },
+      { handicap: pairSide.members[1].handicap, color: pairSide.color },
+      { handicap: singleSide.handicap, color: singleSide.color },
+    ];
+    const overflow = Math.max(...individuals.map((p) => p.handicap)) - matchMinHandicap > 18;
+
+    if (overflow) {
+      // Once someone's gap to the match's lowest handicap tops 18, they get a stroke
+      // on every single hole, which swamps the normal pair-vs-single comparison below.
+      // Rank the 3 individuals instead: the worst gets the ring (doubled where they're
+      // due a 2nd stroke), the middle one gets the text colour, same convention Singles
+      // already uses for its 3-way case.
+      const [, second, worst] = [...individuals].sort((a, b) => a.handicap - b.handicap);
+      const worstStrokes = strokes(worst.handicap);
+      return {
+        textColor: strokes(second.handicap) > 0 ? second.color : null,
+        ringColor: worstStrokes > 0 ? worst.color : null,
+        ringDouble: worstStrokes >= 2,
+      };
+    }
+
+    const pairAExtra = strokes(individuals[0].handicap) > 0;
+    const pairBExtra = strokes(individuals[1].handicap) > 0;
+    const singleExtra = strokes(individuals[2].handicap) > 0;
     const pairAny = pairAExtra || pairBExtra;
     let textColor = null;
     if (singleExtra && !pairAny) textColor = singleSide.color;
     else if (pairAny && !singleExtra) textColor = pairSide.color;
-    return { textColor, ringColor: pairAExtra && pairBExtra ? pairSide.color : null };
+    return { textColor, ringColor: pairAExtra && pairBExtra ? pairSide.color : null, ringDouble: false };
   }
 
   if (match.format === 'singles') {
     const [first, second, third] = [...sides].sort((a, b) => a.handicap - b.handicap);
+    const thirdStrokes = strokes(third.handicap);
     return {
-      textColor: extra(second.handicap) > 0 ? second.color : null,
-      ringColor: extra(third.handicap) > 0 ? third.color : null,
+      textColor: strokes(second.handicap) > 0 ? second.color : null,
+      ringColor: thirdStrokes > 0 ? third.color : null,
+      ringDouble: thirdStrokes >= 2,
     };
   }
 
   // Greensomes: the pair shares one true combined handicap, so a plain single-side
   // comparison is unambiguous.
-  const withExtra = sides.map((s) => ({ side: s, has: extra(s.handicap) > 0 })).filter((x) => x.has);
-  return { textColor: withExtra.length === 1 ? withExtra[0].side.color : null, ringColor: null };
+  const withExtra = sides.map((s) => ({ side: s, has: strokes(s.handicap) > 0 })).filter((x) => x.has);
+  return { textColor: withExtra.length === 1 ? withExtra[0].side.color : null, ringColor: null, ringDouble: false };
 }
 
 function netEagleType() {
@@ -400,7 +428,7 @@ function renderHoleSummary() {
     if (markers.textColor) numStyleParts.push(`color:${markers.textColor}`, 'font-weight:800');
     if (markers.ringColor) numStyleParts.push(`--ring-color:${markers.ringColor}`);
     const numStyle = numStyleParts.length ? ` style="${numStyleParts.join(';')}"` : '';
-    const numClass = markers.ringColor ? ' hole-summary__num--ring' : '';
+    const numClass = markers.ringColor ? ` hole-summary__num--ring${markers.ringDouble ? ' hole-summary__num--ring-double' : ''}` : '';
     const activeClass = hole.hole_number === currentHole ? ' hole-summary__cell--active' : '';
     return `
       <button type="button" class="hole-summary__cell${activeClass}" data-hole="${hole.hole_number}">

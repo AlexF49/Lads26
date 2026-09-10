@@ -6,6 +6,7 @@ const statusEl = document.getElementById('status');
 const teamTabsEl = document.getElementById('team-tabs');
 const playersRowEl = document.getElementById('players-row');
 const bioCardEl = document.getElementById('bio-card');
+const extraCardEl = document.getElementById('extra-card');
 const bioModalBackdropEl = document.getElementById('bio-modal-backdrop');
 const bioFormEl = document.getElementById('bio-form');
 const bioTextareaEl = document.getElementById('bio-textarea');
@@ -75,6 +76,18 @@ function renderBioCard(player, team) {
     </div>
     ${affiliations ? `<p class="bio-card__affiliations">${affiliations}</p>` : ''}
     <p class="bio-card__bio">${player.bio ?? 'Bio coming soon.'}</p>
+    <button type="button" class="bio-card__edit-btn${player.bio_updated ? ' bio-card__edit-btn--done' : ''}" id="edit-bio-btn">✏️ Update Bio</button>
+  `;
+  bioCardEl.querySelector('#edit-bio-btn').addEventListener('click', openBioModal);
+  bioCardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  renderExtraCard(player, team);
+}
+
+function renderExtraCard(player, team) {
+  extraCardEl.hidden = false;
+  extraCardEl.style.borderColor = team.color_hex;
+  extraCardEl.innerHTML = `
     <div class="bio-card__extra-box" id="edit-extra-box">
       ${
         player.fun_facts
@@ -82,11 +95,8 @@ function renderBioCard(player, team) {
           : `<p class="bio-card__extra-text bio-card__extra-text--placeholder"><em>3 things</em></p>`
       }
     </div>
-    <button type="button" class="bio-card__edit-btn${player.bio_updated ? ' bio-card__edit-btn--done' : ''}" id="edit-bio-btn">✏️ Update Bio</button>
   `;
-  bioCardEl.querySelector('#edit-bio-btn').addEventListener('click', openBioModal);
-  bioCardEl.querySelector('#edit-extra-box').addEventListener('click', openExtraModal);
-  bioCardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  extraCardEl.querySelector('#edit-extra-box').addEventListener('click', openExtraModal);
 }
 
 function openBioModal() {
@@ -153,7 +163,7 @@ extraFormEl.addEventListener('submit', async (e) => {
 
   currentPlayer.fun_facts = text;
   closeExtraModal();
-  renderBioCard(currentPlayer, currentTeam);
+  renderExtraCard(currentPlayer, currentTeam);
 });
 
 function renderPlayers(teamPlayers, team) {
@@ -204,6 +214,7 @@ async function init() {
     teamTabsEl.querySelectorAll('.lb-tab').forEach((b) => b.classList.remove('lb-tab--active'));
     teamTabsEl.querySelector(`[data-team-id="${team.id}"]`).classList.add('lb-tab--active');
     bioCardEl.hidden = true;
+    extraCardEl.hidden = true;
     renderPlayers(playersByTeam.get(team.id) ?? [], team);
   }
 

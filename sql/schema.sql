@@ -421,11 +421,12 @@ create policy "public write" on corrections for insert with check (true);
 create policy "public write" on expenses for insert with check (true);
 create policy "public write" on photos for insert with check (true);
 
--- Admin page: editing player team/handicaps, per-day bonus points, and each
--- course's start hole.
+-- Admin page: editing player team/handicaps, per-day bonus points, each
+-- course's start hole, and each hole's par/stroke index/yardages.
 create policy "public write update" on players for update using (true);
 create policy "public write update" on competition_types for update using (true);
 create policy "public write update" on courses for update using (true);
+create policy "public write update" on holes for update using (true);
 
 -- Rules page: editing a format's explanation/scoring text on the fly (stored as a
 -- settings row per day, e.g. key 'rules_day1').

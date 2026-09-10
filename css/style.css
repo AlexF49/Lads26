@@ -911,6 +911,20 @@ body {
   font-size: 0.95rem;
 }
 
+.admin-subsection-title {
+  color: #ffffff;
+  opacity: 0.75;
+  margin: 1rem 0 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admin-subsection-title:first-child {
+  margin-top: 0;
+}
+
 .admin-input {
   width: 4.5rem;
   padding: 0.4rem;

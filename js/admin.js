@@ -7,6 +7,7 @@ const ADMIN_PASSWORD = 'SNBB';
 const statusEl = document.getElementById('status');
 const playersBodyEl = document.getElementById('players-body');
 const coursesBodyEl = document.getElementById('courses-body');
+const holesSectionsEl = document.getElementById('holes-sections');
 const bonusBodyEl = document.getElementById('bonus-body');
 const adminGateEl = document.getElementById('admin-gate');
 const adminContentEl = document.getElementById('admin-content');
@@ -90,6 +91,62 @@ function renderCourses(courses) {
   });
 }
 
+function renderHoles(courses, holes) {
+  const holesByCourse = new Map(courses.map((c) => [c.id, holes.filter((h) => h.course_id === c.id).sort((a, b) => a.hole_number - b.hole_number)]));
+
+  holesSectionsEl.innerHTML = courses
+    .map(
+      (c) => `
+    <h3 class="admin-subsection-title">Day ${c.day} · ${c.name}</h3>
+    <div class="expenses-table-wrap">
+      <table class="expenses-table" data-course-id="${c.id}">
+        <thead>
+          <tr>
+            <th>Hole</th>
+            <th>Par</th>
+            <th>Hcp</th>
+            <th>Yds White</th>
+            <th>Yds Yellow</th>
+            <th>Yds Red</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${(holesByCourse.get(c.id) ?? [])
+            .map(
+              (h) => `
+          <tr data-hole-id="${h.id}">
+            <td>${h.hole_number}</td>
+            <td><input class="admin-input" type="number" data-field="par" value="${h.par ?? ''}" /></td>
+            <td><input class="admin-input" type="number" data-field="stroke_index" value="${h.stroke_index ?? ''}" /></td>
+            <td><input class="admin-input" type="number" data-field="yardage_white" value="${h.yardage_white ?? ''}" /></td>
+            <td><input class="admin-input" type="number" data-field="yardage_yellow" value="${h.yardage_yellow ?? ''}" /></td>
+            <td><input class="admin-input" type="number" data-field="yardage_red" value="${h.yardage_red ?? ''}" /></td>
+          </tr>`
+            )
+            .join('')}
+        </tbody>
+      </table>
+    </div>`
+    )
+    .join('');
+
+  holesSectionsEl.querySelectorAll('[data-field]').forEach((el) => {
+    el.addEventListener('change', async () => {
+      const row = el.closest('[data-hole-id]');
+      const holeId = row.dataset.holeId;
+      const field = el.dataset.field;
+      const value = el.value === '' ? null : parseInt(el.value, 10);
+
+      const { error } = await supabase.from('holes').update({ [field]: value }).eq('id', holeId);
+      if (error) {
+        setStatus(`Could not save: ${error.message}`, true);
+        return;
+      }
+      setStatus('Saved ✓');
+    });
+  });
+}
+
 function renderBonusTypes(types) {
   bonusBodyEl.innerHTML = types
     .map(
@@ -127,25 +184,28 @@ async function init() {
     { data: teams, error: teamsError },
     { data: players, error: playersError },
     { data: courses, error: coursesError },
+    { data: holes, error: holesError },
     { data: types, error: typesError },
   ] = await Promise.all([
     supabase.from('teams').select('id, name').order('id'),
     supabase.from('players').select('id, name, nickname, team_id, seed, handicap, handicap_day1, handicap_day2, handicap_day3').order('name'),
     supabase.from('courses').select('id, name, day, start_hole').order('day'),
+    supabase.from('holes').select('id, course_id, hole_number, par, stroke_index, yardage_white, yardage_yellow, yardage_red'),
     supabase
       .from('competition_types')
       .select('id, name, points, points_day1, points_day2, points_day3, sort_order')
       .order('sort_order'),
   ]);
 
-  if (teamsError || playersError || coursesError || typesError) {
-    setStatus(`Could not load admin data: ${(teamsError || playersError || coursesError || typesError).message}`, true);
+  if (teamsError || playersError || coursesError || holesError || typesError) {
+    setStatus(`Could not load admin data: ${(teamsError || playersError || coursesError || holesError || typesError).message}`, true);
     return;
   }
 
   setStatus('');
   renderPlayers(players ?? [], teams ?? []);
   renderCourses(courses ?? []);
+  renderHoles(courses ?? [], holes ?? []);
   renderBonusTypes(types ?? []);
 }
 

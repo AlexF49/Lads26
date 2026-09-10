@@ -494,30 +494,19 @@ function renderHole() {
         <input type="checkbox" data-hammer="${sideKey}" ${calledHammers.has(sideKey) ? 'checked' : ''} />
         🔨 ${side.teamName} Hammer
       </label>`;
+    const scoreRowHtml = (m, color) => {
+      const val = holeScores.get(m.playerId) ?? hole.par;
+      return `
+          <div class="score-row" style="color:${color}">
+            <span class="score-row__label">${m.label}</span>
+            ${stepper(m.playerId, val)}
+            <span class="score-row__net" data-net="${m.playerId}"></span>
+          </div>`;
+    };
     inputsHtml =
-      pairSide.members
-        .map((m) => {
-          const val = holeScores.get(m.playerId) ?? hole.par;
-          return `
-          <div class="score-row" style="color:${pairSide.color}">
-            <span class="score-row__label">${m.label}</span>
-            ${stepper(m.playerId, val)}
-            <span class="score-row__net" data-net="${m.playerId}"></span>
-          </div>`;
-        })
-        .join('') +
-      hammerToggleHtml('pair', pairSide) +
-      (() => {
-        const m = singleSide.members[0];
-        const val = holeScores.get(m.playerId) ?? hole.par;
-        return `
-          <div class="score-row" style="color:${singleSide.color}">
-            <span class="score-row__label">${m.label}</span>
-            ${stepper(m.playerId, val)}
-            <span class="score-row__net" data-net="${m.playerId}"></span>
-          </div>`;
-      })() +
-      hammerToggleHtml('single', singleSide);
+      pairSide.members.map((m) => scoreRowHtml(m, pairSide.color)).join('') +
+      scoreRowHtml(singleSide.members[0], singleSide.color) +
+      `<div class="hammer-toggle-row">${hammerToggleHtml('pair', pairSide)}${hammerToggleHtml('single', singleSide)}</div>`;
   } else {
     inputsHtml = sides
       .map((s) => {

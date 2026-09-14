@@ -456,11 +456,59 @@ body {
 .lb-player-row {
   background: var(--bg-card);
   border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.lb-player-row__main {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
   padding: 0.6rem 0.9rem;
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.lb-player-row__breakdown {
+  display: none;
+  padding: 0 0.9rem 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.lb-player-row--expanded .lb-player-row__breakdown {
+  display: block;
+}
+
+.lb-player-row__breakdown h4 {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin: 0.6rem 0 0.35rem;
+}
+
+.lb-player-row__breakdown-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.lb-player-row__breakdown-item {
+  font-size: 0.75rem;
+  background: rgba(11, 61, 30, 0.07);
+  border-radius: 8px;
+  padding: 0.2rem 0.5rem;
+}
+
+.lb-player-row__breakdown-empty {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.6rem 0 0;
 }
 
 .lb-player-row__rank {

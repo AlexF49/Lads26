@@ -306,7 +306,10 @@ export function aggregateEvent({
 
   const teamTotalsMap = new Map(teams.map((t) => [t.id, { matchplay: 0, bonus: 0 }]));
   const playerTotalsMap = new Map(
-    players.map((p) => [p.id, { playerId: p.id, name: p.name, teamId: p.team_id, holePoints: 0, bonusPoints: 0 }])
+    players.map((p) => [
+      p.id,
+      { playerId: p.id, name: p.name, teamId: p.team_id, holePoints: 0, bonusPoints: 0, formatPoints: {}, bonusByType: new Map() },
+    ])
   );
 
   // Pass 1: build each match's sides + matchplay points, and Net Eagle bonus per side
@@ -353,7 +356,10 @@ export function aggregateEvent({
           const playerIds = side.members ? side.members.map((m) => m.playerId) : side.playerIds;
           for (const pid of playerIds) {
             const pt = playerTotalsMap.get(pid);
-            if (pt) pt.holePoints += pts; // full credit to every player on that side, no split
+            if (pt) {
+              pt.holePoints += pts; // full credit to every player on that side, no split
+              pt.formatPoints[match.format] = (pt.formatPoints[match.format] ?? 0) + pts;
+            }
           }
           if (teamTotalsMap.has(side.teamId)) teamTotalsMap.get(side.teamId).matchplay += pts;
         }
@@ -364,7 +370,10 @@ export function aggregateEvent({
       const eagleAwards = netEagleAwards(match.format, sides, matchMinHandicap, hole, holeScores, netEagleType, match.day);
       for (const [pid, pts] of eagleAwards) {
         const pt = playerTotalsMap.get(pid);
-        if (pt) pt.bonusPoints += pts;
+        if (pt) {
+          pt.bonusPoints += pts;
+          pt.bonusByType.set(netEagleType.name, (pt.bonusByType.get(netEagleType.name) ?? 0) + pts);
+        }
         const teamId = playerById.get(pid)?.team_id;
         if (teamTotalsMap.has(teamId)) teamTotalsMap.get(teamId).bonus += pts;
         const mapping = sideByDayPlayer.get(`${match.day}:${pid}`);
@@ -399,7 +408,11 @@ export function aggregateEvent({
     const playerType = playerBonusTypeById.get(row.competition_type_id);
     if (playerType != null) {
       const pt = playerTotalsMap.get(row.winner_id);
-      if (pt) pt.bonusPoints += pointsForDay(playerType, row.day);
+      if (pt) {
+        const pts = pointsForDay(playerType, row.day);
+        pt.bonusPoints += pts;
+        pt.bonusByType.set(playerType.name, (pt.bonusByType.get(playerType.name) ?? 0) + pts);
+      }
     }
 
     if (!teamBonusTypeIds.has(row.competition_type_id)) continue;
@@ -446,8 +459,21 @@ export function aggregateEvent({
     return { ...t, matchplay: v.matchplay, bonus: v.bonus, total: v.matchplay + v.bonus };
   });
 
+  const FORMAT_ORDER = ['greensomes', 'betterball', 'singles'];
   const playerTotals = [...playerTotalsMap.values()]
-    .map((p) => ({ ...p, total: p.holePoints + p.bonusPoints, team: teamById.get(p.teamId) }))
+    .map((p) => ({
+      ...p,
+      total: p.holePoints + p.bonusPoints,
+      team: teamById.get(p.teamId),
+      // Where their points came from — only categories they actually scored in.
+      formatBreakdown: FORMAT_ORDER.filter((f) => (p.formatPoints[f] ?? 0) > 0).map((f) => ({
+        format: f,
+        points: p.formatPoints[f],
+      })),
+      bonusBreakdown: competitionTypes
+        .filter((ct) => (p.bonusByType.get(ct.name) ?? 0) > 0)
+        .map((ct) => ({ name: ct.name, points: p.bonusByType.get(ct.name) })),
+    }))
     .sort((a, b) => b.total - a.total);
 
   perMatch.sort((a, b) => a.globalNumber - b.globalNumber);

@@ -96,25 +96,65 @@ function renderTeamTab(teamTotals, perMatch, courseByDay) {
   `;
 }
 
+function pointsLabel(pts) {
+  return `${pts} pt${pts === 1 ? '' : 's'}`;
+}
+
+function playerBreakdownHtml(p) {
+  const formatItems = p.formatBreakdown
+    .map((f) => `<span class="lb-player-row__breakdown-item">${FORMAT_LABEL[f.format] ?? f.format}: ${pointsLabel(f.points)}</span>`)
+    .join('');
+  const bonusItems = p.bonusBreakdown
+    .map((b) => `<span class="lb-player-row__breakdown-item">${b.name}: ${pointsLabel(b.points)}</span>`)
+    .join('');
+
+  if (!formatItems && !bonusItems) {
+    return `<div class="lb-player-row__breakdown"><p class="lb-player-row__breakdown-empty">No points yet</p></div>`;
+  }
+
+  return `
+    <div class="lb-player-row__breakdown">
+      ${formatItems ? `<h4>Match Points</h4><div class="lb-player-row__breakdown-items">${formatItems}</div>` : ''}
+      ${bonusItems ? `<h4>Bonus</h4><div class="lb-player-row__breakdown-items">${bonusItems}</div>` : ''}
+    </div>
+  `;
+}
+
+// Player ids currently expanded, kept across re-renders (live updates redraw this tab often).
+const expandedPlayerIds = new Set();
+
 function renderIndividualTab(playerTotals) {
   individualTabEl.innerHTML = `
     <div class="lb-players">
       ${playerTotals
         .map(
           (p, i) => `
-        <div class="lb-player-row">
-          <span class="lb-player-row__rank">${i + 1}</span>
-          <span class="lb-player-row__flag">${p.team?.flag_emoji ?? ''}</span>
-          <div class="lb-player-row__info">
-            <span class="lb-player-row__name" style="color:${p.team?.color_hex ?? 'inherit'}">${p.name}</span>
-            <span class="lb-player-row__detail">${p.holePoints} Match Points + ${p.bonusPoints} bonus</span>
-          </div>
-          <strong class="lb-player-row__total">${p.total}</strong>
+        <div class="lb-player-row${expandedPlayerIds.has(p.playerId) ? ' lb-player-row--expanded' : ''}" data-player-id="${p.playerId}">
+          <button type="button" class="lb-player-row__main" data-player-toggle>
+            <span class="lb-player-row__rank">${i + 1}</span>
+            <span class="lb-player-row__flag">${p.team?.flag_emoji ?? ''}</span>
+            <div class="lb-player-row__info">
+              <span class="lb-player-row__name" style="color:${p.team?.color_hex ?? 'inherit'}">${p.name}</span>
+              <span class="lb-player-row__detail">${p.holePoints} Match Points + ${p.bonusPoints} bonus</span>
+            </div>
+            <strong class="lb-player-row__total">${p.total}</strong>
+          </button>
+          ${playerBreakdownHtml(p)}
         </div>`
         )
         .join('')}
     </div>
   `;
+
+  individualTabEl.querySelectorAll('[data-player-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('.lb-player-row');
+      const playerId = row.dataset.playerId;
+      const isExpanded = row.classList.toggle('lb-player-row--expanded');
+      if (isExpanded) expandedPlayerIds.add(playerId);
+      else expandedPlayerIds.delete(playerId);
+    });
+  });
 }
 
 // Hand-rolled SVG line chart (no charting library) plotting each team's win probability
@@ -235,7 +275,10 @@ async function loadAndRender() {
     supabase.from('scores').select('match_id, day, hole, player_id, gross_strokes'),
     supabase.from('courses').select('id, day, name, start_hole'),
     supabase.from('holes').select('course_id, hole_number, par, stroke_index'),
-    supabase.from('competition_types').select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated'),
+    supabase
+      .from('competition_types')
+      .select('id, name, points, points_day1, points_day2, points_day3, counts_toward_bonus, is_automated')
+      .order('sort_order'),
     supabase.from('competition_results').select('day, winner_id, competition_type_id'),
     supabase.from('hammers').select('match_id, hole, side'),
     supabase.from('prediction_snapshots').select('holes_completed, team_id, win_probability').order('holes_completed'),

@@ -224,11 +224,25 @@ function render2026() {
     ]);
 }
 
+function daysUntil(targetDate) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((targetDate - today) / msPerDay);
+}
+
 function render2027() {
+  const daysLeft = daysUntil(new Date(2027, 8, 25)); // 25 Sep 2027
+  const countdownHtml =
+    daysLeft > 0
+      ? `<p class="snbb-coming-soon__countdown">${daysLeft} day${daysLeft === 1 ? '' : 's'} to go</p>`
+      : `<p class="snbb-coming-soon__countdown">It&rsquo;s on!</p>`;
+
   tab2027El.innerHTML = `
     <div class="snbb-coming-soon">
       <div class="snbb-coming-soon__emoji">🍿</div>
       <p class="snbb-coming-soon__text">Coming Soon</p>
+      ${countdownHtml}
     </div>`;
 }
 

@@ -1013,6 +1013,12 @@ body {
   margin: 0;
 }
 
+.snbb-coming-soon__countdown {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
 /* ---- Expenses ---- */
 .expenses-actions {
   display: flex;

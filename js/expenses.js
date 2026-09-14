@@ -48,11 +48,29 @@ function renderTable(expenses) {
         <td>${e.description}</td>
         <td>${formatAmount(e.amount, e.currency)}</td>
         <td>${new Date(e.created_at).toLocaleDateString()}</td>
+        <td><button type="button" class="expense-delete-btn" data-id="${e.id}" aria-label="Delete expense">🗑️</button></td>
       </tr>`
     )
     .join('');
   renderTotals(expenses);
 }
+
+async function deleteExpense(id) {
+  const { error } = await supabase.from('expenses').delete().eq('id', id);
+  if (error) {
+    setStatus(`Could not delete expense: ${error.message}`, true);
+    return;
+  }
+  loadExpenses();
+}
+
+expensesBodyEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.expense-delete-btn');
+  if (!btn) return;
+  const row = currentExpenses.find((exp) => exp.id === btn.dataset.id);
+  const label = row ? `${row.description} (${formatAmount(row.amount, row.currency)})` : 'this expense';
+  if (confirm(`Delete ${label}?`)) deleteExpense(btn.dataset.id);
+});
 
 async function loadExpenses() {
   const { data, error } = await supabase

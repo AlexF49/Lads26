@@ -978,6 +978,20 @@ body {
   white-space: nowrap;
 }
 
+.expense-delete-btn {
+  border: none;
+  background: none;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+  opacity: 0.7;
+}
+
+.expense-delete-btn:hover {
+  opacity: 1;
+}
+
 /* ---- Admin ---- */
 .admin-section-title {
   color: #ffffff;

@@ -423,6 +423,7 @@ create policy "public write update" on competition_results for update using (tru
 create policy "public write delete" on competition_results for delete using (true);
 create policy "public write" on corrections for insert with check (true);
 create policy "public write" on expenses for insert with check (true);
+create policy "public write delete" on expenses for delete using (true);
 create policy "public write" on photos for insert with check (true);
 
 -- Admin page: editing player team/handicaps, per-day bonus points, each

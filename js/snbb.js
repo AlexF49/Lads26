@@ -135,6 +135,7 @@ function render2026() {
         name: 'Double Trouble',
         desc: 'Both opponents in group have to avoid trouble in the form of sand or water. If one goes in, you get 2 bonus points.',
         drink: 'Two Different Shots of Choice',
+        owner: 'Kibbey',
       },
       {
         name: 'Dude Where&rsquo;s My Club?',
@@ -152,6 +153,7 @@ function render2026() {
         name: 'Which-Tee Houston',
         desc: 'You choose which tee you tee off from and which tee your opponent.',
         drink: 'Gayest Cocktail On Menu',
+        owner: 'Nick Bourne',
       },
       {
         name: 'Swinging Sixties',

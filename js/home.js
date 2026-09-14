@@ -133,6 +133,7 @@ async function init() {
 
   matchCentreTilesEl.appendChild(tile({ href: 'leaderboard.html', emoji: '🏆', label: 'Leaderboard' }));
   matchCentreTilesEl.appendChild(tile({ href: 'rules.html', emoji: '📖', label: 'Rules' }));
+  matchCentreTilesEl.appendChild(tile({ href: 'snbb.html', emoji: '🎱', label: 'SNBB' }));
   for (const { label, emoji } of MATCH_CENTRE_COMING_SOON) {
     matchCentreTilesEl.appendChild(tile({ emoji, label, subtitle: 'Coming soon', disabled: true }));
   }

@@ -930,6 +930,89 @@ body {
   cursor: pointer;
 }
 
+/* ---- SNBB ---- */
+.snbb-footnote {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.snbb-balls {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.snbb-ball {
+  border: 1px solid #eef1ef;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+}
+
+.snbb-ball__header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.snbb-ball__era {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 0.15rem 0.4rem;
+}
+
+.snbb-ball__name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.snbb-ball__desc {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.snbb-ball__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.snbb-ball__tag {
+  font-size: 0.75rem;
+  background: rgba(11, 61, 30, 0.07);
+  border-radius: 8px;
+  padding: 0.2rem 0.5rem;
+}
+
+.snbb-coming-soon {
+  text-align: center;
+  padding: 3.5rem 1rem;
+  background: var(--bg-card);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.snbb-coming-soon__emoji {
+  font-size: 4rem;
+  line-height: 1;
+  margin-bottom: 0.75rem;
+}
+
+.snbb-coming-soon__text {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
 /* ---- Expenses ---- */
 .expenses-actions {
   display: flex;

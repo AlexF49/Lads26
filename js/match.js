@@ -25,6 +25,7 @@ const matchTitleEl = document.getElementById('match-title');
 const matchPlayersEl = document.getElementById('match-players');
 const statusEl = document.getElementById('status');
 const syncStatusEl = document.getElementById('sync-status');
+const otherMatchesEl = document.getElementById('other-matches');
 const totalsEl = document.getElementById('totals');
 const holeSummaryEl = document.getElementById('hole-summary');
 const holeCardEl = document.getElementById('hole-card');
@@ -305,6 +306,81 @@ function hammerIconsHtml(remaining) {
   return `<div class="totals__hammers">${[0, 1]
     .map((i) => `<span class="hammer-icon${i >= remaining ? ' hammer-icon--lost' : ''}">🔨</span>`)
     .join('')}</div>`;
+}
+
+// Live score for one of the day's other two matches, computed the same way renderTotals()
+// does for this match — hole-by-hole off that match's own scores, using this day's holes
+// (shared across every match today, whatever course/day this page is already on).
+function computeOtherMatchPoints(format, matchPlayersForMatch, scoresForMatch) {
+  const otherSides = buildSides(format, match.day, matchPlayersForMatch);
+  const otherMinHandicap = computeMatchMinHandicap(otherSides);
+  const scoresByHoleForMatch = new Map();
+  for (const row of scoresForMatch) {
+    if (!scoresByHoleForMatch.has(row.hole)) scoresByHoleForMatch.set(row.hole, new Map());
+    scoresByHoleForMatch.get(row.hole).set(row.player_id, row.gross_strokes);
+  }
+  const running = new Map(otherSides.map((s) => [s.key, 0]));
+  let holesPlayed = 0;
+  for (const hole of holes) {
+    const holeScores = scoresByHoleForMatch.get(hole.hole_number) ?? new Map();
+    const points = computeHolePoints(format, otherSides, otherMinHandicap, hole, holeScores, new Set(), lastHole);
+    if (points) {
+      holesPlayed += 1;
+      for (const [key, pts] of points) running.set(key, running.get(key) + pts);
+    }
+  }
+  return { sides: otherSides, running, holesPlayed };
+}
+
+// The other two matches on today's card, in ascending match-number order (left to right),
+// so a player can see how the rest of the day is going without leaving this page.
+async function loadOtherMatches() {
+  const { data: dayMatches, error } = await supabase
+    .from('matches')
+    .select('id, match_number, format')
+    .eq('day', match.day)
+    .neq('id', matchId)
+    .order('match_number');
+
+  if (error || !dayMatches || dayMatches.length === 0) {
+    otherMatchesEl.innerHTML = '';
+    return;
+  }
+
+  const otherIds = dayMatches.map((m) => m.id);
+  const [{ data: mps }, { data: scoresRows }] = await Promise.all([
+    supabase
+      .from('match_players')
+      .select(
+        'match_id, player_id, side, players ( name, handicap, handicap_day1, handicap_day2, handicap_day3, team_id, teams ( name, color_hex, flag_emoji ) )'
+      )
+      .in('match_id', otherIds),
+    supabase.from('scores').select('match_id, hole, player_id, gross_strokes').in('match_id', otherIds),
+  ]);
+
+  otherMatchesEl.innerHTML = dayMatches
+    .map((m) => {
+      const globalNumber = (match.day - 1) * 3 + m.match_number;
+      const mpsForMatch = (mps ?? []).filter((mp) => mp.match_id === m.id);
+      if (mpsForMatch.length === 0) {
+        return `
+        <div class="other-match-box">
+          <span class="other-match-box__label">Match ${globalNumber}</span>
+          <span class="other-match-box__score other-match-box__score--empty">Not set up</span>
+        </div>`;
+      }
+      const scoresForMatch = (scoresRows ?? []).filter((r) => r.match_id === m.id);
+      const { sides: otherSides, running, holesPlayed } = computeOtherMatchPoints(m.format, mpsForMatch, scoresForMatch);
+      const scoreHtml = otherSides
+        .map((s) => `<strong style="color:${s.color}">${running.get(s.key)}</strong>`)
+        .join('<span class="other-match-box__dash">–</span>');
+      return `
+        <div class="other-match-box">
+          <span class="other-match-box__label">Match ${globalNumber} &middot; ${holesPlayed}/18</span>
+          <div class="other-match-box__score">${scoreHtml}</div>
+        </div>`;
+    })
+    .join('');
 }
 
 function renderTotals() {
@@ -974,6 +1050,12 @@ async function init() {
   setStatus('');
   renderTotals();
   renderHole();
+
+  loadOtherMatches();
+  supabase
+    .channel(`sibling-scores-${matchId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'scores', filter: `day=eq.${match.day}` }, loadOtherMatches)
+    .subscribe();
 }
 
 init();

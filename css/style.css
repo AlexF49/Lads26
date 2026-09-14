@@ -481,7 +481,14 @@ body {
 }
 
 .lb-player-row--expanded .lb-player-row__breakdown {
-  display: block;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 0.75rem;
+}
+
+.lb-player-row__breakdown-col:first-child {
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  padding-right: 0.75rem;
 }
 
 .lb-player-row__breakdown h4 {
@@ -492,17 +499,14 @@ body {
   margin: 0.6rem 0 0.35rem;
 }
 
-.lb-player-row__breakdown-items {
+.lb-player-row__breakdown-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
 .lb-player-row__breakdown-item {
   font-size: 0.75rem;
-  background: rgba(11, 61, 30, 0.07);
-  border-radius: 8px;
-  padding: 0.2rem 0.5rem;
 }
 
 .lb-player-row__breakdown-empty {

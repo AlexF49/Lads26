@@ -114,8 +114,14 @@ function playerBreakdownHtml(p) {
 
   return `
     <div class="lb-player-row__breakdown">
-      ${formatItems ? `<h4>Match Points</h4><div class="lb-player-row__breakdown-items">${formatItems}</div>` : ''}
-      ${bonusItems ? `<h4>Bonus</h4><div class="lb-player-row__breakdown-items">${bonusItems}</div>` : ''}
+      <div class="lb-player-row__breakdown-col">
+        <h4>Match Points</h4>
+        <div class="lb-player-row__breakdown-list">${formatItems}</div>
+      </div>
+      <div class="lb-player-row__breakdown-col">
+        <h4>Bonus</h4>
+        <div class="lb-player-row__breakdown-list">${bonusItems}</div>
+      </div>
     </div>
   `;
 }

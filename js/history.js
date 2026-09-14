@@ -21,7 +21,7 @@ const PARAGRAPHS = [
   `It was all to play for on the Singles, especially given Ryanair had finally managed to re-arrange their flight scheduled to Pilling's needs. A fully loaded Alan is a dangerous thing and Skipper Kibbey duly obliged as USA tried to go out strong. Either it was the sunburn or the competition pressure, but Leaky decided to throw his club out of the pram and under the buggy. The tournament takes on-course behaviour extremely seriously so he was duly awarded the General Attitude Award for such behaviour.`,
   `For a period it looked on as Leaky dominated Habibi, Plinky was clinging onto Biggles, Alan was dominating Cooper and Kibbey started to turn the screw through the turn. Fair play to Team Europe though as they continued their Par 3 specialism. Nikki tried to make it interesting by losing his pink lady but Cooper came through with the happy ending and a strong final hole had Europe clinching it with a 14 point win in the end.`,
   `Once again, Paul was masterful in his organisation. Kibbey graceful in defeat showing that the trip isn't really about golf and the best player award went to a dry cleaners in West Sussex.`,
-  `2026: Return Of The Bone. After two years off to work on the mental side of his game, 2026 saw the return to the fold of Champagne Jamie and with it the reintroduction of the 3 team format.`,
+  `After two years off to work on the mental side of his game, 2026 saw the return to the fold of Champagne Jamie and with it the reintroduction of the 3 team format.`,
   `After some "experimenting" last year it also saw the Lads make a return to the Triple Crown course selection of Quinta North, South and Laranjal.`,
   `The 11th instalment of the franchise, now complete with its own fully functional AlanApp, got off to a shaky start as early as Thursday evening when Leakey arrived at Faro airport but BA decided that also delivering his bag and clubs would be an airbridge too far.`,
   `Further drama and confusion on Friday morning when Jamie had been bumped off his flight from City airport. Or had he? In the end BA squeezed him on after a late fitness test and we had a beaming Bone to accompany Pilling to welcome the Captains and tournament referee's Algarve arrivals.`,
@@ -42,8 +42,11 @@ const TOP_PHOTO = 'img/history/photo1.jpg';
 const PHOTOS = [
   { src: 'img/history/photo2.jpg', afterParagraph: 3 }, // above "A few years via Hanbury Manor"
   { src: 'img/history/photo3.jpg', afterParagraph: 7 }, // above "2025 bring the same people back"
-  { src: 'img/history/photo4.jpg', afterParagraph: 15 }, // above "2026: Return Of The Bone"
+  { src: 'img/history/photo4.jpg', afterParagraph: 15 }, // below the "2026" heading, above its text
 ];
+
+// Bold section headings dropped in above a paragraph (and, per PHOTOS above, above its photo).
+const HEADINGS = [{ text: '2026: Return Of The Bone.', afterParagraph: 15 }];
 
 // Sourced from History/Results.png.
 const RESULTS = [
@@ -57,12 +60,15 @@ const RESULTS = [
   { year: 2023, team: 'Sex Panthers', players: 'Kibbey, Brown, Robinson' },
   { year: 2024, team: 'Swinging Seamen', players: 'Kibbey, Forrest, Brown, Conway', ga: 'Nick Bourne' },
   { year: 2025, team: 'Europe', players: 'Bourne, Cooper, Brown, Robinson', ga: 'Andrew Conway' },
+  { year: 2026, team: 'USA', players: 'Forrest, Kibbey, March', ga: 'Nick Bourne' },
 ];
 
 function renderHistory() {
   const parts = [`<img class="history-text__photo" src="${TOP_PHOTO}" alt="Lads 2026 history photo" />`];
   PARAGRAPHS.forEach((text, i) => {
     parts.push(`<p class="history-text__para">${text}</p>`);
+    const heading = HEADINGS.find((h) => h.afterParagraph === i + 1);
+    if (heading) parts.push(`<h3 class="history-text__heading">${heading.text}</h3>`);
     const photo = PHOTOS.find((p) => p.afterParagraph === i + 1);
     if (photo) parts.push(`<img class="history-text__photo" src="${photo.src}" alt="Lads 2026 history photo" />`);
   });

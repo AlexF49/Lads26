@@ -26,6 +26,10 @@ const matchPlayersEl = document.getElementById('match-players');
 const statusEl = document.getElementById('status');
 const syncStatusEl = document.getElementById('sync-status');
 const otherMatchesEl = document.getElementById('other-matches');
+const otherMatchModalBackdropEl = document.getElementById('other-match-modal-backdrop');
+const otherMatchModalTitleEl = document.getElementById('other-match-modal-title');
+const otherMatchModalBodyEl = document.getElementById('other-match-modal-body');
+const otherMatchModalCloseBtn = document.getElementById('other-match-modal-close');
 const totalsEl = document.getElementById('totals');
 const holeSummaryEl = document.getElementById('hole-summary');
 const holeCardEl = document.getElementById('hole-card');
@@ -68,6 +72,9 @@ let sides; // format-specific participant description, see buildSides()
 let matchMinHandicap;
 let matchPlayersFlat; // [{ playerId, name, color }] — the 3 individuals in this match, any format
 let competitionTypes; // [{ id, name, points }]
+// Map<matchId, { globalNumber, sides }> for the day's other two matches, so the "who's
+// playing" popup doesn't need to refetch on click.
+let otherMatchesData = new Map();
 // Map<holeNumber, Map<playerId, grossStrokes>>
 let scoresByHole = new Map();
 // Map<holeNumber, Map<competitionTypeId, winnerPlayerId>>
@@ -358,6 +365,7 @@ async function loadOtherMatches() {
     supabase.from('scores').select('match_id, hole, player_id, gross_strokes').in('match_id', otherIds),
   ]);
 
+  otherMatchesData = new Map();
   otherMatchesEl.innerHTML = dayMatches
     .map((m) => {
       const globalNumber = (match.day - 1) * 3 + m.match_number;
@@ -371,17 +379,47 @@ async function loadOtherMatches() {
       }
       const scoresForMatch = (scoresRows ?? []).filter((r) => r.match_id === m.id);
       const { sides: otherSides, running, holesPlayed } = computeOtherMatchPoints(m.format, mpsForMatch, scoresForMatch);
+      otherMatchesData.set(m.id, { globalNumber, sides: otherSides });
       const scoreHtml = otherSides
         .map((s) => `<strong style="color:${s.color}">${running.get(s.key)}</strong>`)
         .join('<span class="other-match-box__dash">–</span>');
       return `
-        <div class="other-match-box">
+        <div class="other-match-box other-match-box--clickable" data-match-id="${m.id}">
           <span class="other-match-box__label">Match ${globalNumber} &middot; ${holesPlayed}/18</span>
           <div class="other-match-box__score">${scoreHtml}</div>
         </div>`;
     })
     .join('');
+
+  otherMatchesEl.querySelectorAll('[data-match-id]').forEach((el) => {
+    el.addEventListener('click', () => openOtherMatchModal(el.dataset.matchId));
+  });
 }
+
+function openOtherMatchModal(otherMatchId) {
+  const data = otherMatchesData.get(otherMatchId);
+  if (!data) return;
+  otherMatchModalTitleEl.textContent = `Match ${data.globalNumber} · Who's Playing`;
+  otherMatchModalBodyEl.innerHTML = data.sides
+    .map(
+      (s) => `
+      <div class="other-match-modal__side" style="color:${s.color}">
+        <div class="other-match-modal__team">${s.flagEmoji ?? ''} ${s.teamName}</div>
+        <div class="other-match-modal__names">${s.namesWithHandicap.map((n) => `${n.name} (${n.handicap})`).join(' &amp; ')}</div>
+      </div>`
+    )
+    .join('');
+  otherMatchModalBackdropEl.hidden = false;
+}
+
+function closeOtherMatchModal() {
+  otherMatchModalBackdropEl.hidden = true;
+}
+
+otherMatchModalCloseBtn.addEventListener('click', closeOtherMatchModal);
+otherMatchModalBackdropEl.addEventListener('click', (e) => {
+  if (e.target === otherMatchModalBackdropEl) closeOtherMatchModal();
+});
 
 function renderTotals() {
   const running = new Map(sides.map((s) => [s.key, 0]));

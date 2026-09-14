@@ -1461,6 +1461,10 @@ body {
   text-align: center;
 }
 
+.other-match-box--clickable {
+  cursor: pointer;
+}
+
 .other-match-box__label {
   display: block;
   font-size: 0.65rem;
@@ -1486,6 +1490,24 @@ body {
 .other-match-box__dash {
   color: var(--text-muted);
   font-weight: 400;
+}
+
+.other-match-modal__side {
+  margin-bottom: 0.75rem;
+}
+
+.other-match-modal__side:last-child {
+  margin-bottom: 0;
+}
+
+.other-match-modal__team {
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.other-match-modal__names {
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
 .totals {

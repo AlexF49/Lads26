@@ -275,7 +275,7 @@ function bonusPointsByPlayer() {
   }
   for (const hole of holes) {
     const holeScores = scoresByHole.get(hole.hole_number) ?? new Map();
-    for (const [playerId, pts] of netEagleAwards(match.format, sides, matchMinHandicap, hole, holeScores, netEagleType(), match.day)) {
+    for (const [playerId, pts] of netEagleAwards(match.format, sides, hole, holeScores, netEagleType(), match.day)) {
       if (totals.has(playerId)) totals.set(playerId, totals.get(playerId) + pts);
     }
   }
@@ -642,7 +642,7 @@ function renderHole() {
     }
 
     const netEagleRow = document.getElementById('net-eagle-row');
-    const awards = netEagleAwards(match.format, sides, matchMinHandicap, hole, previewScores, netEagleType(), match.day);
+    const awards = netEagleAwards(match.format, sides, hole, previewScores, netEagleType(), match.day);
     const netEagleLabel = `🦅 Net Eagle <small>(auto, ${pointsForDay(netEagleType(), match.day)}pt)</small>`;
     if (awards.size) {
       const byPlayer = new Map(matchPlayersFlat.map((p) => [p.playerId, p]));

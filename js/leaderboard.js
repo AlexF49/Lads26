@@ -107,7 +107,7 @@ function renderIndividualTab(playerTotals) {
           <span class="lb-player-row__flag">${p.team?.flag_emoji ?? ''}</span>
           <div class="lb-player-row__info">
             <span class="lb-player-row__name" style="color:${p.team?.color_hex ?? 'inherit'}">${p.name}</span>
-            <span class="lb-player-row__detail">${p.holePoints} holes + ${p.bonusPoints} bonus</span>
+            <span class="lb-player-row__detail">${p.holePoints} Match Points + ${p.bonusPoints} bonus</span>
           </div>
           <strong class="lb-player-row__total">${p.total}</strong>
         </div>`

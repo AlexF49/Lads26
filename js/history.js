@@ -3,7 +3,8 @@ const STORAGE_KEY = 'lads26_player_id';
 const historyTabEl = document.getElementById('history-tab');
 const resultsTabEl = document.getElementById('results-tab');
 
-// Sourced from Lads 2026.xlsx, Information tab, B14:B18.
+// Sourced from Lads 2026.xlsx, Information tab, B14:B18, plus History/2026.docx for the
+// 2026 write-up appended at the end.
 const PARAGRAPHS = [
   `A group of lads lived together. They would go out, they would drink and Kibbey would set all the Playstation records. Everything was perfect, until Alan spoiled it. He moved in with Christina and within a few short months, all of them were drawn into living with their better halves. Little by little they saw less of each other and lives moved on.`,
   `So it was decided that they should all get together and learn absolutely nothing about what was going on in each others lives over 48 hours. Whilst labelled as a golf weekend, that was being generous; they were somewhere near where Benni lived but no-one was quite sure. Short of Benni driving the green for the first and last ever driving the green bonus points, barely anything memorable happened, partly caused by the White wine and a Leaky meltdown. Alan won.`,
@@ -20,6 +21,20 @@ const PARAGRAPHS = [
   `It was all to play for on the Singles, especially given Ryanair had finally managed to re-arrange their flight scheduled to Pilling's needs. A fully loaded Alan is a dangerous thing and Skipper Kibbey duly obliged as USA tried to go out strong. Either it was the sunburn or the competition pressure, but Leaky decided to throw his club out of the pram and under the buggy. The tournament takes on-course behaviour extremely seriously so he was duly awarded the General Attitude Award for such behaviour.`,
   `For a period it looked on as Leaky dominated Habibi, Plinky was clinging onto Biggles, Alan was dominating Cooper and Kibbey started to turn the screw through the turn. Fair play to Team Europe though as they continued their Par 3 specialism. Nikki tried to make it interesting by losing his pink lady but Cooper came through with the happy ending and a strong final hole had Europe clinching it with a 14 point win in the end.`,
   `Once again, Paul was masterful in his organisation. Kibbey graceful in defeat showing that the trip isn't really about golf and the best player award went to a dry cleaners in West Sussex.`,
+  `2026: Return Of The Bone. After two years off to work on the mental side of his game, 2026 saw the return to the fold of Champagne Jamie and with it the reintroduction of the 3 team format.`,
+  `After some "experimenting" last year it also saw the Lads make a return to the Triple Crown course selection of Quinta North, South and Laranjal.`,
+  `The 11th instalment of the franchise, now complete with its own fully functional AlanApp, got off to a shaky start as early as Thursday evening when Leakey arrived at Faro airport but BA decided that also delivering his bag and clubs would be an airbridge too far.`,
+  `Further drama and confusion on Friday morning when Jamie had been bumped off his flight from City airport. Or had he? In the end BA squeezed him on after a late fitness test and we had a beaming Bone to accompany Pilling to welcome the Captains and tournament referee's Algarve arrivals.`,
+  `The team draw, made on Thursday night live via video link, had thrown together some tasty combinations. Winviz controversially knocking the Australian side of Chief, Benni and Plinky down to 28% before a ball had been hit.`,
+  `The story of Friday was all Bone. Kwizzey's sleepless Thursday night working out how to coach Jamie through 18 holes of Greensomes proved totally unfounded as Bone delivered right from the start, memorably dialling in a 6 iron to 6 feet on the par 3 second at Quinta North and USA using all 6 of his drives in the first six holes.`,
+  `Combined with a strong Alan contribution playing his own ball in Match 3, USA took a lead into Day 2 with the European team of Nikki, Leakey and Biggles not far behind.`,
+  `Saturday - moving day - saw Australia roar back into the picture. Captain Cooper leading from the front with a 24-14 win over the Europeans and, despite birdies on the first two holes USA skip Kwizz found it hard to hold back the tide of the little and large Aussie greenkeeper pairing of Pilling and Brown.`,
+  `A refreshed format for Saturday Night BallBag ("Smaller Balls, Bigger Stakes") saw 16 balls drawn out with associated drinks for the evening and "boosts" to be used on Sunday's round.`,
+  `The first of which saw Bone have to ask the Laranjal starter on the first tee what the course record was before teeing off without a practice swing. Predictable results ensued.`,
+  `The new AlanApp meant that a worldwide audience could stay glued to the action as the ultimate fate of the cheeseboard was decided. Could USA hold on to their narrow lead and register their first win under the American flag? Or would Europe with the Bandit Biggles lurking in the third group be able to inflict one of his heavy defeats?`,
+  `Winviz ebbed and flowed, a 1am Cheekys finish messing with some players' games on the front nine whilst somehow inspiring others. SNBB balls were being utilised in a mad scramble for every point on the course and, with double points available in all 3 matches on the 18th, anything was possible.`,
+  `In truth, on the 18th tee it was Team USA's to lose and with Bourne and Cooper both finding water on 18 a big points swing in the Captain's match was averted as Kwizz kept his ball dry and more importantly his wedges in his bag. With both Bone and a surging Pilling able to keep a leash on Biggles in Tier 3, it meant that the Tier 2 match drama coming down the 18th last was a battle for second place between Europe and Australia. In a "you couldn't make this up" scenario the two teams ended up joint second. Discussions for an 18 hole playoff remain ongoing at time of going to press.`,
+  `In terms of AOB, important to note that despite Nikki managing to get a buggy stuck in a sandpit in the trees looking for his ball that was in fact in the middle of the fairway, Pilling took home the GA award for a fart that cleared the decks of a significantly large OPEN AIR area on top of the Bold Octopus. Chicken Wings were blamed. Lessons were learned. We go again in 2027.`,
 ];
 
 // Photo 1 opens the page; the rest are inserted above the paragraph they mark.
@@ -27,6 +42,7 @@ const TOP_PHOTO = 'img/history/photo1.jpg';
 const PHOTOS = [
   { src: 'img/history/photo2.jpg', afterParagraph: 3 }, // above "A few years via Hanbury Manor"
   { src: 'img/history/photo3.jpg', afterParagraph: 7 }, // above "2025 bring the same people back"
+  { src: 'img/history/photo4.jpg', afterParagraph: 15 }, // above "2026: Return Of The Bone"
 ];
 
 // Sourced from History/Results.png.

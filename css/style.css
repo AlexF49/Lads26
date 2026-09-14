@@ -544,6 +544,23 @@ body {
   font-size: 1.4rem;
 }
 
+.lb-player-row__badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.lb-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.lb-badge svg {
+  display: block;
+}
+
 /* ---- Predictor ---- */
 .predictor-current {
   display: flex;

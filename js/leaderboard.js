@@ -12,6 +12,32 @@ const predictorTabEl = document.getElementById('predictor-tab');
 
 const FORMAT_LABEL = { greensomes: 'Greensomes', betterball: 'Betterball', singles: 'Singles' };
 
+// Small "most X" badges shown next to a leader's total score on the individual leaderboard.
+const BADGE_ICONS = {
+  'Net Eagle': { emoji: '🦅', title: 'Most Net Eagles' },
+  'Par3 Pin': {
+    svg: `<svg viewBox="0 0 20 24" width="15" height="18"><polygon points="8,24 12,24 10,15" fill="#8a6d3b"/><circle cx="10" cy="8" r="7" fill="#fff" stroke="#333" stroke-width="1.2"/><text x="10" y="11.3" font-size="8" font-weight="700" text-anchor="middle" fill="#333">3</text></svg>`,
+    title: 'Most Par 3 Pins',
+  },
+  'Long Putt': {
+    svg: `<svg viewBox="0 0 24 24" width="17" height="17"><rect x="2" y="13" width="13" height="6" rx="1.5" fill="#444"/><line x1="15" y1="16" x2="22" y2="3" stroke="#444" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+    title: 'Most Long Putts',
+  },
+  'Chip In': { emoji: '🍟', title: 'Most Chip Ins' },
+};
+
+function badgeHtml(typeName) {
+  const cfg = BADGE_ICONS[typeName];
+  return `<span class="lb-badge" title="${cfg.title}">${cfg.emoji ?? cfg.svg}</span>`;
+}
+
+function playerBadgesHtml(playerId, badgeLeaders) {
+  return Object.keys(BADGE_ICONS)
+    .filter((typeName) => badgeLeaders[typeName]?.includes(playerId))
+    .map(badgeHtml)
+    .join('');
+}
+
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
   statusEl.classList.toggle('status--error', isError);
@@ -132,12 +158,13 @@ function playerBreakdownHtml(p) {
 // Player ids currently expanded, kept across re-renders (live updates redraw this tab often).
 const expandedPlayerIds = new Set();
 
-function renderIndividualTab(playerTotals) {
+function renderIndividualTab(playerTotals, badgeLeaders) {
   individualTabEl.innerHTML = `
     <div class="lb-players">
       ${playerTotals
-        .map(
-          (p, i) => `
+        .map((p, i) => {
+          const badges = playerBadgesHtml(p.playerId, badgeLeaders);
+          return `
         <div class="lb-player-row${expandedPlayerIds.has(p.playerId) ? ' lb-player-row--expanded' : ''}" data-player-id="${p.playerId}">
           <button type="button" class="lb-player-row__main" data-player-toggle>
             <span class="lb-player-row__rank">${i + 1}</span>
@@ -146,11 +173,12 @@ function renderIndividualTab(playerTotals) {
               <span class="lb-player-row__name" style="color:${p.team?.color_hex ?? 'inherit'}">${p.name}</span>
               <span class="lb-player-row__detail">${p.holePoints} Match Points + ${p.bonusPoints} bonus</span>
             </div>
+            ${badges ? `<span class="lb-player-row__badges">${badges}</span>` : ''}
             <strong class="lb-player-row__total">${p.total}</strong>
           </button>
           ${playerBreakdownHtml(p)}
-        </div>`
-        )
+        </div>`;
+        })
         .join('')}
     </div>
   `;
@@ -300,7 +328,7 @@ async function loadAndRender() {
 
   const courseByDay = new Map((courses ?? []).map((c) => [c.day, c.name]));
 
-  const { perMatch, teamTotals, playerTotals } = aggregateEvent({
+  const { perMatch, teamTotals, playerTotals, badgeLeaders } = aggregateEvent({
     teams,
     players,
     matches,
@@ -317,7 +345,7 @@ async function loadAndRender() {
 
   setStatus('');
   renderTeamTab(teamTotals, perMatch, courseByDay);
-  renderIndividualTab(playerTotals);
+  renderIndividualTab(playerTotals, badgeLeaders);
   renderPredictorTab(teamTotals, predictions, predictionHistory ?? []);
   updatedAtEl.textContent = `Live · updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }

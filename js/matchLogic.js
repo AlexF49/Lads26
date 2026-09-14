@@ -328,7 +328,16 @@ export function aggregateEvent({
   const playerTotalsMap = new Map(
     players.map((p) => [
       p.id,
-      { playerId: p.id, name: p.name, teamId: p.team_id, holePoints: 0, bonusPoints: 0, formatPoints: {}, bonusByType: new Map() },
+      {
+        playerId: p.id,
+        name: p.name,
+        teamId: p.team_id,
+        holePoints: 0,
+        bonusPoints: 0,
+        formatPoints: {},
+        bonusByType: new Map(),
+        bonusCountByType: new Map(), // times won per category, for "most X" leaderboard badges
+      },
     ])
   );
 
@@ -393,6 +402,7 @@ export function aggregateEvent({
         if (pt) {
           pt.bonusPoints += pts;
           pt.bonusByType.set(netEagleType.name, (pt.bonusByType.get(netEagleType.name) ?? 0) + pts);
+          pt.bonusCountByType.set(netEagleType.name, (pt.bonusCountByType.get(netEagleType.name) ?? 0) + 1);
         }
         const teamId = playerById.get(pid)?.team_id;
         if (teamTotalsMap.has(teamId)) teamTotalsMap.get(teamId).bonus += pts;
@@ -432,6 +442,7 @@ export function aggregateEvent({
         const pts = pointsForDay(playerType, row.day);
         pt.bonusPoints += pts;
         pt.bonusByType.set(playerType.name, (pt.bonusByType.get(playerType.name) ?? 0) + pts);
+        pt.bonusCountByType.set(playerType.name, (pt.bonusCountByType.get(playerType.name) ?? 0) + 1);
       }
     }
 
@@ -499,5 +510,14 @@ export function aggregateEvent({
 
   perMatch.sort((a, b) => a.globalNumber - b.globalNumber);
 
-  return { perMatch, teamTotals, playerTotals };
+  // Leaderboard badges: who's won the most of each of these categories, by count of wins
+  // (not points, since a category's point value can vary by day). Ties share the badge.
+  const BADGE_TYPES = ['Net Eagle', 'Par3 Pin', 'Long Putt', 'Chip In'];
+  const badgeLeaders = {};
+  for (const typeName of BADGE_TYPES) {
+    const max = Math.max(0, ...playerTotals.map((p) => p.bonusCountByType.get(typeName) ?? 0));
+    badgeLeaders[typeName] = max > 0 ? playerTotals.filter((p) => (p.bonusCountByType.get(typeName) ?? 0) === max).map((p) => p.playerId) : [];
+  }
+
+  return { perMatch, teamTotals, playerTotals, badgeLeaders };
 }

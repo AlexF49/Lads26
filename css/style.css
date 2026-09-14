@@ -509,12 +509,6 @@ body {
   font-size: 0.75rem;
 }
 
-.lb-player-row__breakdown-item--sub {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: -0.15rem;
-}
-
 .lb-player-row__breakdown-empty {
   font-size: 0.75rem;
   color: var(--text-muted);

@@ -103,12 +103,8 @@ function pointsLabel(pts) {
 function playerBreakdownHtml(p) {
   const formatItems = p.formatBreakdown
     .map((f) => {
-      const pointsLine = `<span class="lb-player-row__breakdown-item">${FORMAT_LABEL[f.format] ?? f.format}: ${pointsLabel(f.points)}</span>`;
-      const roundLine =
-        f.roundScore != null
-          ? `<span class="lb-player-row__breakdown-item lb-player-row__breakdown-item--sub">Played to ${f.roundScore}</span>`
-          : '';
-      return pointsLine + roundLine;
+      const roundSuffix = f.roundScore != null ? ` (${f.roundScore > 0 ? '+' : ''}${f.roundScore})` : '';
+      return `<span class="lb-player-row__breakdown-item">${FORMAT_LABEL[f.format] ?? f.format}: ${pointsLabel(f.points)}${roundSuffix}</span>`;
     })
     .join('');
   const bonusItems = p.bonusBreakdown

@@ -300,7 +300,10 @@ create table competition_results (
   competition_type_id uuid references competition_types(id),
   winner_id uuid references players(id),
   created_at timestamptz default now(),
-  unique(day, hole, competition_type_id)
+  unique(day, hole, competition_type_id, winner_id)  -- lets several players win the same bonus
+                                                      -- category on the same hole; see
+                                                      -- sql/migrate_multiple_bonus_winners.sql
+                                                      -- for the live-DB migration
 );
 
 -- ============================================================================

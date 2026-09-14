@@ -265,9 +265,12 @@ function bonusPointsByPlayer() {
   );
   const totals = new Map(matchPlayersFlat.map((p) => [p.playerId, 0]));
   for (const winners of bonusByHole.values()) {
-    for (const [typeId, winnerId] of winners) {
-      if (!totals.has(winnerId) || !pointsByType.has(typeId)) continue;
-      totals.set(winnerId, totals.get(winnerId) + pointsByType.get(typeId));
+    for (const [typeId, winnerIds] of winners) {
+      if (!pointsByType.has(typeId)) continue;
+      for (const winnerId of winnerIds) {
+        if (!totals.has(winnerId)) continue;
+        totals.set(winnerId, totals.get(winnerId) + pointsByType.get(typeId));
+      }
     }
   }
   for (const hole of holes) {
@@ -528,21 +531,21 @@ function renderHole() {
       <div class="bonus-grid__row bonus-grid__row--auto" id="net-eagle-row"></div>
       <div class="bonus-grid__row bonus-grid__row--header">
         <span></span>
-        <span>—</span>
+        <span></span>
         ${matchPlayersFlat.map((p) => `<span style="color:${p.color}">${p.nickname}</span>`).join('')}
       </div>
       ${manualTypes
         .map((ct) => {
-          const selected = bonusSelections.get(ct.id) ?? 'none';
-          const options = [{ playerId: 'none', label: '—' }, ...matchPlayersFlat];
+          const selected = bonusSelections.get(ct.id) ?? new Set();
           return `
           <div class="bonus-grid__row">
             <span class="bonus-grid__label">${ct.name} <small>(${pointsForDay(ct, match.day)}pt)</small></span>
-            ${options
+            <span></span>
+            ${matchPlayersFlat
               .map(
-                (o) => `
+                (p) => `
               <label class="bonus-grid__radio">
-                <input type="radio" name="bonus-${ct.id}" value="${o.playerId}" ${o.playerId === selected ? 'checked' : ''} />
+                <input type="checkbox" name="bonus-${ct.id}" value="${p.playerId}" ${selected.has(p.playerId) ? 'checked' : ''} />
               </label>`
               )
               .join('')}
@@ -699,17 +702,23 @@ function renderHole() {
 
     scoresByHole.set(currentHole, new Map(rows.map((r) => [r.player_id, r.gross_strokes])));
 
-    // Bonus shots: one radio group per category, "none" means no winner logged this hole.
+    // Bonus shots: a checkbox grid per category — multiple players can now win the same
+    // category on the same hole (e.g. two Long Putt winners across different matches).
     const bonusUpserts = [];
-    const bonusDeletes = [];
+    const bonusDeleteOps = [];
     const newBonusSelections = new Map();
     for (const ct of manualTypes) {
-      const checked = holeCardEl.querySelector(`input[name="bonus-${ct.id}"]:checked`)?.value ?? 'none';
-      if (checked === 'none') {
-        bonusDeletes.push(ct.id);
-      } else {
-        newBonusSelections.set(ct.id, checked);
-        bonusUpserts.push({ day: match.day, hole: currentHole, competition_type_id: ct.id, winner_id: checked });
+      const prevSelected = bonusSelections.get(ct.id) ?? new Set();
+      const checked = new Set(
+        [...holeCardEl.querySelectorAll(`input[name="bonus-${ct.id}"]:checked`)].map((el) => el.value)
+      );
+      if (checked.size) newBonusSelections.set(ct.id, checked);
+      for (const playerId of checked) {
+        bonusUpserts.push({ day: match.day, hole: currentHole, competition_type_id: ct.id, winner_id: playerId });
+      }
+      const removed = [...prevSelected].filter((id) => !checked.has(id));
+      if (removed.length) {
+        bonusDeleteOps.push({ competition_type_id: ct.id, winner_ids: removed });
       }
     }
 
@@ -718,18 +727,18 @@ function renderHole() {
         table: 'competition_results',
         op: 'upsert',
         rows: bonusUpserts,
-        onConflict: 'day,hole,competition_type_id',
+        onConflict: 'day,hole,competition_type_id,winner_id',
       });
       if (!result.ok) {
         setStatus(`Could not save bonus shots: ${result.error.message}`, true);
         return;
       }
     }
-    if (bonusDeletes.length) {
+    for (const { competition_type_id, winner_ids } of bonusDeleteOps) {
       const result = await queueWrite(supabase, {
         table: 'competition_results',
         op: 'delete',
-        match: { day: match.day, hole: currentHole, competition_type_id: bonusDeletes },
+        match: { day: match.day, hole: currentHole, competition_type_id, winner_id: winner_ids },
       });
       if (!result.ok) {
         setStatus(`Could not save bonus shots: ${result.error.message}`, true);
@@ -938,7 +947,9 @@ async function init() {
   bonusByHole = new Map();
   for (const row of existingBonus ?? []) {
     if (!bonusByHole.has(row.hole)) bonusByHole.set(row.hole, new Map());
-    bonusByHole.get(row.hole).set(row.competition_type_id, row.winner_id);
+    const holeMap = bonusByHole.get(row.hole);
+    if (!holeMap.has(row.competition_type_id)) holeMap.set(row.competition_type_id, new Set());
+    holeMap.get(row.competition_type_id).add(row.winner_id);
   }
 
   hammersByHole = new Map();

@@ -16,7 +16,14 @@ const FORMAT_LABEL = { greensomes: 'Greensomes', betterball: 'Betterball', singl
 const BADGE_ICONS = {
   'Net Eagle': { emoji: '🦅', title: 'Most Net Eagles' },
   'Par3 Pin': {
-    svg: `<svg viewBox="0 0 20 24" width="15" height="18"><polygon points="8,24 12,24 10,15" fill="#8a6d3b"/><circle cx="10" cy="8" r="7" fill="#fff" stroke="#333" stroke-width="1.2"/><text x="10" y="11.3" font-size="8" font-weight="700" text-anchor="middle" fill="#333">3</text></svg>`,
+    svg: `<svg viewBox="0 0 20 26" width="14" height="18">
+      <path d="M6.5,15 L13.5,15 L10.8,17.5 L9.2,17.5 Z" fill="#c99a5b"/>
+      <rect x="9.3" y="17.2" width="1.4" height="8.3" rx="0.5" fill="#c99a5b"/>
+      <circle cx="10" cy="8" r="6.5" fill="#FFD400" stroke="#555" stroke-width="1"/>
+      <circle cx="7.2" cy="5.6" r="0.7" fill="#d9a600"/>
+      <circle cx="12.8" cy="5.6" r="0.7" fill="#d9a600"/>
+      <text x="10" y="11" font-size="7.5" font-weight="800" text-anchor="middle" fill="#1D4ED8">3</text>
+    </svg>`,
     title: 'Most Par 3 Pins',
   },
   'Long Putt': {

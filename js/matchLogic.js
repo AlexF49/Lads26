@@ -281,6 +281,23 @@ export function aggregateEvent({
     lastHoleByDay.set(course.day, lastHoleForCourse(course.start_hole ?? 1));
   }
 
+  // Individual round score (Betterball/Singles days only — Greensomes is a shared ball,
+  // so there's no individual gross score to speak of). Each hole's gross score is capped
+  // at double bogey (par + 2) before being totalled against par, which is a rough measure
+  // of "what handicap they played to" that day, independent of matchplay points.
+  const ROUND_SCORE_DAYS = [2, 3];
+  const dayByFormat = new Map(matches.map((m) => [m.format, m.day]));
+  const roundScoreByPlayerDay = new Map(); // playerId -> Map<day, capped strokes-to-par>
+  for (const row of scores) {
+    if (!ROUND_SCORE_DAYS.includes(row.day) || row.gross_strokes == null) continue;
+    const hole = holesByDay.get(row.day)?.get(row.hole);
+    if (!hole) continue;
+    const capped = Math.min(row.gross_strokes - hole.par, 2);
+    if (!roundScoreByPlayerDay.has(row.player_id)) roundScoreByPlayerDay.set(row.player_id, new Map());
+    const byDay = roundScoreByPlayerDay.get(row.player_id);
+    byDay.set(row.day, (byDay.get(row.day) ?? 0) + capped);
+  }
+
   const matchPlayersByMatch = new Map();
   for (const mp of matchPlayers) {
     if (!matchPlayersByMatch.has(mp.match_id)) matchPlayersByMatch.set(mp.match_id, []);
@@ -469,10 +486,11 @@ export function aggregateEvent({
       total: p.holePoints + p.bonusPoints,
       team: teamById.get(p.teamId),
       // Where their points came from — only categories they actually scored in.
-      formatBreakdown: FORMAT_ORDER.filter((f) => (p.formatPoints[f] ?? 0) > 0).map((f) => ({
-        format: f,
-        points: p.formatPoints[f],
-      })),
+      formatBreakdown: FORMAT_ORDER.map((f) => {
+        const day = dayByFormat.get(f);
+        const roundScore = ROUND_SCORE_DAYS.includes(day) ? roundScoreByPlayerDay.get(p.playerId)?.get(day) : undefined;
+        return { format: f, points: p.formatPoints[f] ?? 0, roundScore };
+      }).filter((entry) => entry.points > 0 || entry.roundScore != null),
       bonusBreakdown: competitionTypes
         .filter((ct) => (p.bonusByType.get(ct.name) ?? 0) > 0)
         .map((ct) => ({ name: ct.name, points: p.bonusByType.get(ct.name) })),

@@ -146,7 +146,7 @@ export function lastHoleForCourse(startHole) {
 }
 
 // Betterball's per-player net scores for a hole, or null if any of the 3 is missing.
-function betterballNets(sides, matchMinHandicap, hole, holeScores) {
+export function betterballNets(sides, matchMinHandicap, hole, holeScores) {
   const [pairSide, singleSide] = sides;
   const grossA = holeScores.get(pairSide.members[0].playerId);
   const grossB = holeScores.get(pairSide.members[1].playerId);
@@ -382,7 +382,17 @@ export function aggregateEvent({
         for (const [key, pts] of points) {
           sidePoints.set(key, sidePoints.get(key) + pts);
           const side = sides.find((s) => s.key === key);
-          const playerIds = side.members ? side.members.map((m) => m.playerId) : side.playerIds;
+          let playerIds = side.members ? side.members.map((m) => m.playerId) : side.playerIds;
+          // Betterball: only the partner(s) whose net score actually counted that hole earn
+          // the points — a partner who was beaten by their own teammate gets nothing for it.
+          // A tied net score between the two partners counts as both having earned it.
+          if (match.format === 'betterball' && key === 'pair') {
+            const nets = betterballNets(sides, matchMinHandicap, hole, holeScores);
+            if (nets) {
+              const best = Math.min(nets.netA, nets.netB);
+              playerIds = side.members.filter((_, i) => (i === 0 ? nets.netA : nets.netB) === best).map((m) => m.playerId);
+            }
+          }
           for (const pid of playerIds) {
             const pt = playerTotalsMap.get(pid);
             if (pt) {

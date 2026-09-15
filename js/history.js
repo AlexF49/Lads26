@@ -48,7 +48,9 @@ const PHOTOS = [
 // Bold section headings dropped in above a paragraph (and, per PHOTOS above, above its photo).
 const HEADINGS = [{ text: '2026: Return Of The Bone.', afterParagraph: 15 }];
 
-// Sourced from History/Results.png.
+// Sourced from History/Results.png. `siteUrl` links a year to that year's own site (each
+// year of this event is now its own separate Vercel deployment/Supabase project) so you can
+// flick back to see that year's live leaderboard/bios/etc, rather than duplicating it here.
 const RESULTS = [
   { year: 2015, team: 'Europe', players: 'Forrest, Brown, Robinson, Pilling' },
   { year: 2016, team: 'Europe', players: 'Forrest, Brown, Robinson' },
@@ -85,7 +87,7 @@ function renderResults() {
         ${RESULTS.map(
           (r) => `
           <tr>
-            <td>${r.year}</td>
+            <td>${r.siteUrl ? `<a href="${r.siteUrl}" target="_blank" rel="noopener">${r.year}</a>` : r.year}</td>
             <td>${r.team}</td>
             <td>
               ${r.players}
